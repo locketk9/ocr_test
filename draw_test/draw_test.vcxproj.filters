@@ -1,0 +1,186 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="소스 파일">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="헤더 파일">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="리소스 파일">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="inlcude_cv">
+      <UniqueIdentifier>{b1ad8ea9-b625-44f3-a1af-f31b140547b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tiny_cnn">
+      <UniqueIdentifier>{b9867bc5-4ba7-4c8a-a538-d8daa949ca72}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="draw_test.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="draw_testDlg.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="include_cv\bmp_func.h">
+      <Filter>inlcude_cv</Filter>
+    </ClInclude>
+    <ClInclude Include="include_cv\draw_pic.h">
+      <Filter>inlcude_cv</Filter>
+    </ClInclude>
+    <ClInclude Include="include_cv\dt.h">
+      <Filter>inlcude_cv</Filter>
+    </ClInclude>
+    <ClInclude Include="include_cv\haar_dwt.h">
+      <Filter>inlcude_cv</Filter>
+    </ClInclude>
+    <ClInclude Include="include_cv\ocr.h">
+      <Filter>inlcude_cv</Filter>
+    </ClInclude>
+    <ClInclude Include="include_cv\ocr_def.h">
+      <Filter>inlcude_cv</Filter>
+    </ClInclude>
+    <ClInclude Include="include_cv\ocr_func.h">
+      <Filter>inlcude_cv</Filter>
+    </ClInclude>
+    <ClInclude Include="include_cv\zhangsuen.h">
+      <Filter>inlcude_cv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\activation_function.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\average_pooling_layer.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\cifar10_parser.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\config.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\convolutional_layer.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\deform.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\display.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\dropout.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\fully_connected_dropout_layer.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\fully_connected_layer.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\image.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\input_layer.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\layer.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\layers.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\loss_function.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\max_pooling_layer.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\mnist_parser.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\network.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\optimizer.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\partial_connected_layer.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\product.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\tiny_cnn.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\util.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tiny_cnn\weight_init.h">
+      <Filter>tiny_cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="include_cv\lbp.h">
+      <Filter>inlcude_cv</Filter>
+    </ClInclude>
+    <ClInclude Include="include_cv\hog.h">
+      <Filter>inlcude_cv</Filter>
+    </ClInclude>
+    <ClInclude Include="include_cv\orb.h">
+      <Filter>inlcude_cv</Filter>
+    </ClInclude>
+    <ClInclude Include="include_cv\sift.h">
+      <Filter>inlcude_cv</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="draw_test.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="draw_testDlg.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="include_cv\bmp_func.cpp">
+      <Filter>inlcude_cv</Filter>
+    </ClCompile>
+    <ClCompile Include="include_cv\ocr_def.cpp">
+      <Filter>inlcude_cv</Filter>
+    </ClCompile>
+    <ClCompile Include="include_cv\ocr_func.cpp">
+      <Filter>inlcude_cv</Filter>
+    </ClCompile>
+    <ClCompile Include="include_cv\zhangsuen.cpp">
+      <Filter>inlcude_cv</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="drawtest.rc">
+      <Filter>리소스 파일</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\drawtest.rc2">
+      <Filter>리소스 파일</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\draw_test.ico">
+      <Filter>리소스 파일</Filter>
+    </Image>
+  </ItemGroup>
+</Project>
