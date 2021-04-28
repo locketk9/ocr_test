@@ -24,36 +24,33 @@ std::vector<imgRECT> seg_projection(const ch_vec &bin, int cx, int cy, int_vec &
 
     // calc roi
     std::vector<imgRECT> segs;
-    int idx = 0;
-    // horizon
-    int gap = 0;
+    // vertical
+    int vgap = 0, hgap=0;
     bool s = false, e = false;
-    for (int h=0; h!=hp.size(); ++h)    {
-        if (hp[h] != 0 && s == false) {
+    for (int v=0; v!=vp.size(); ++v)    {
+        if (vp[v] != 0 && s == false) {
             s = true;
-            gap = h;
-        } else if (hp[h] == 0 && s == true) {
+            vgap = v;
+        } else if (vp[v] == 0 && s == true) {
             e = true;
         }
         if (s && e) {
-            imgRECT seg(gap, 0, h-gap, 0);
-            segs.push_back(seg);
-
-            // vertical
-            gap = 0;
+            // horizontal
+            hgap = 0;
             s = e = false;
-            for (int v = 0; v != vp.size(); ++v) {
-                if (vp[v] != 0 && s == false) {
+            for (int h = 0; h != hp.size(); ++h) {
+                if (hp[h] != 0 && s == false) {
                     s = true;
-                    gap = v;
+                    hgap = h;
                 }
-                else if (vp[v] == 0 && s == true) {
+                else if (hp[h] == 0 && s == true) {
                     e = true;
                 }
                 if (s && e) {
-                    segs[idx].y = gap; segs[idx].cy = v - gap;
+                    imgRECT seg(hgap, vgap, h-hgap, v - vgap);
+                    segs.push_back(seg);
+
                     e = s = false;
-                    ++idx;
                 }
             }
 
