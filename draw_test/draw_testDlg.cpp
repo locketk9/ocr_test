@@ -22,6 +22,7 @@
 #include "./include_cv/orb.h"
 #include "./include_cv/sift.h"
 
+#include "./include_cv/seg_projection.h"
 
 //---------------------
 #include "../tiny_cnn/tiny_cnn.h"
@@ -505,8 +506,12 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 
 		//saveBMP("bin2.bmp", bin2.data(), s_rt.cx, s_rt.cy, 1);
 
-		rt_vec	segs1;
-		segmentation(bin2, s_rt, segs1);
+		//rt_vec	segs1;
+		//segmentation(bin2, s_rt, segs1);
+		// segmenation of projection
+		int_vec hp, vp;
+		rt_vec segs1 = seg_projection(bin2, s_rt.cx, s_rt.cy, hp, vp);
+
 
 		if (segs1.size() != 1)
 			return;
@@ -654,8 +659,12 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 			}
 		}
 
-		rt_vec	segs1;
-		segmentation(bin2, s_rt, segs1);
+		//rt_vec	segs1;
+		//segmentation(bin2, s_rt, segs1);
+		// segmenation of projection
+		int_vec hp, vp;
+		rt_vec segs1 = seg_projection(bin2, s_rt.cx, s_rt.cy, hp, vp);
+
 
 		if (segs1.size() != 1)
 			return;
@@ -771,9 +780,14 @@ int Cdraw_testDlg::load_number() {
 		bin[i] = gray[i] < 128 ? 255 : 0;
 	}
 
-	rt_vec	segs;
-	//{
-	segmentation(bin, rect, segs);
+	// 이전버전 세그멘테이션
+//	rt_vec	segs;
+//	//{
+//	segmentation(bin, rect, segs);
+	
+	// segmentation of projection
+	int_vec hp, vp;
+	rt_vec segs = seg_projection(bin, rect.cx, rect.cy, hp, vp);
 
 	// segs to regulation
 	//int rw = SAMPLE_W, rh = SAMPLE_H;
@@ -807,6 +821,8 @@ int Cdraw_testDlg::load_number() {
 	//draw_seg(dc.m_hDC, segs);
 //}
 
+	//saveBMP("a_bin.bmp", bin.data(), rect.cx, rect.cy, 1);
+
 	for (const auto &seg : segs) {
 		//ch_vec sig;
 		//signature3(bin, rect, seg, sig);
@@ -826,7 +842,7 @@ int Cdraw_testDlg::load_number() {
 		resize(sig, sig_rt, sig2, sig2_rt);
 		zs::thin(sig2, sig2_rt, sig2_rt, false, false, true);
 
-
+	//	saveBMP("a_seg.bmp", sig2.data(), sig2_rt.cx, sig2_rt.cy, 1);
 		
 	//	fl_vec cvt(sig2.begin(), sig2.end()), dwt(sig2.begin(), sig2.end());
 		//haar_dwt(cvt, seg.cx, seg.cy, dwt, 1);

@@ -220,6 +220,7 @@
     <ClInclude Include="include_cv\ocr_def.h" />
     <ClInclude Include="include_cv\ocr_func.h" />
     <ClInclude Include="include_cv\orb.h" />
+    <ClInclude Include="include_cv\seg_projection.h" />
     <ClInclude Include="include_cv\sift.h" />
     <ClInclude Include="include_cv\zhangsuen.h" />
     <ClInclude Include="Resource.h" />
