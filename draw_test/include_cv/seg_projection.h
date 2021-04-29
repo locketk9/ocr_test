@@ -9,14 +9,14 @@
 /// @brief segmenattion by projection
 /// 일단 1라인만 가능하다.
 std::vector<imgRECT> seg_projection(const ch_vec &bin, int cx, int cy, int_vec &hp, int_vec &vp) {
-    hp.resize(cx, 0);
+    //hp.resize(cx, 0);
     vp.resize(cy, 0);
     
-    // calc horizontal projection & vertical projection
+    // calc vertical projection
     for (int y=0; y!=cy; ++y)   {
         for (int x=0; x!=cx; ++x)   {
             if (bin[cx*y + x] != 0) {
-                ++hp[x];
+                //++hp[x];
                 ++vp[y];
             } 
         }
@@ -35,6 +35,16 @@ std::vector<imgRECT> seg_projection(const ch_vec &bin, int cx, int cy, int_vec &
             e = true;
         }
         if (s && e) {
+            // calc horizontal projection
+            hp.resize(cx, 0);
+            for (int y = vgap; y != v; ++y) {
+                for (int x = 0; x != cx; ++x) {
+                    if (bin[cx * y + x] != 0) {
+                        ++hp[x];
+                        //++vp[y];
+                    }
+                }
+            }            
             // horizontal
             hgap = 0;
             s = e = false;

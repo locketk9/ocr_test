@@ -756,7 +756,7 @@ int Cdraw_testDlg::load_number() {
 
 	ch_vec src;
 	int w = 0, h = 0;
-	loadBMP("./sample image/number.bmp", src, w, h);
+	loadBMP("./sample image/number1.bmp", src, w, h);
 	size_t rs = w * h;
 
 	//saveBMP("data.bmp", src.data(), w, h, 3);
