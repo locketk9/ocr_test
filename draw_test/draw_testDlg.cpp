@@ -112,7 +112,7 @@ std::vector<unsigned char> get_bmp(HDC hdc, int cx, int cy)	{
 	return rv3;
 }
 
-int ResultOut(HDC hDC, std::vector<std::pair<int, double>> r) {
+int ResultOut(HDC hDC, std::vector<std::pair<int, double>> r, int x=10, int y=10) {
 	CDC *dc = CDC::FromHandle(hDC);
 	
 	CString csr; csr.Format(_T("%d%d%d%d%d"), r[0].first, r[1].first, r[2].first, r[3].first, r[4].first);
@@ -120,7 +120,7 @@ int ResultOut(HDC hDC, std::vector<std::pair<int, double>> r) {
 	CFont font, *oldFont;
 	font.CreateFontW(80, 0, 0, 0, FW_BOLD, 0, 0, 0, 0, 0, 0, 2, 0, L"SYSTEM_FIXED_FONT");
 	oldFont = (CFont*)dc->SelectObject(font);
-	dc->TextOutW(10, 10, csr);
+	dc->TextOutW(x, y, csr);
 	//dc->SelectObject(oldFont);
 	//font.DeleteObject();
 
@@ -513,122 +513,129 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 		rt_vec segs1 = seg_projection(bin2, s_rt.cx, s_rt.cy, hp, vp);
 
 
-		if (segs1.size() != 1)
-			return;
+		//if (segs1.size() != 1)
+		//	return;
+		// support multi recognition
+		int idx_segs = 0;
+		int disp_gap = 65;
+		for (auto seg1 : segs1) {
 
-		//imgRECT seg_rt(0, 0, segs[0].cx, segs[0].cy);
-		//ch_vec seg(seg_rt.cx * seg_rt.cy);
-		//seg_copy(bin2, s_rt, seg, segs[0]);
+			//imgRECT seg_rt(0, 0, segs[0].cx, segs[0].cy);
+			//ch_vec seg(seg_rt.cx * seg_rt.cy);
+			//seg_copy(bin2, s_rt, seg, segs[0]);
 
-		//ch_vec gray(d_rt.cx* d_rt.cy);
-		//resize(seg, seg_rt, gray, d_rt);
+			//ch_vec gray(d_rt.cx* d_rt.cy);
+			//resize(seg, seg_rt, gray, d_rt);
 
-		//imgRECT s_rt(0, 0, rt.Width(), rt.Height());
-		//imgRECT d_rt(0, 0, SAMPLE_W, SAMPLE_H);
-			   		 
-		imgRECT seg1 = segs1[0];
-		// adapt seg size
-		seg1.cx = std::min(seg1.cx, s_rt.cx);
-		seg1.cy = std::min(seg1.cy, s_rt.cy);
-		adapt_seg(seg1);
-		ch_vec grab(seg1.cx * seg1.cy);
-		seg_copy(bin2, s_rt, grab, seg1);
+			//imgRECT s_rt(0, 0, rt.Width(), rt.Height());
+			//imgRECT d_rt(0, 0, SAMPLE_W, SAMPLE_H);
 
-		saveBMP("a1.bmp", bin2.data(), s_rt.cx, s_rt.cy, 1);
-		saveBMP("a2.bmp", grab.data(), seg1.cx, seg1.cy, 1);
+			//imgRECT seg1 = segs1[0];
+			// adapt seg size
+		//	seg1.cx = std::min(seg1.cx, s_rt.cx);
+		//	seg1.cy = std::min(seg1.cy, s_rt.cy);
+			adapt_seg(seg1);
+			ch_vec grab(seg1.cx * seg1.cy);
+			seg_copy(bin2, s_rt, grab, seg1);
 
-		ch_vec gray(d_rt.cx * d_rt.cy);
+			saveBMP("a1.bmp", bin2.data(), s_rt.cx, s_rt.cy, 1);
+			saveBMP("a2.bmp", grab.data(), seg1.cx, seg1.cy, 1);
 
-		seg1.x = seg1.y = 0;
-	//	zs::thin(grab, seg1, seg1, false, false, true);
-		resize(grab, seg1, gray, d_rt);
-		zs::thin(gray, d_rt, d_rt, false, false, true);
+			ch_vec gray(d_rt.cx * d_rt.cy);
 
-		saveBMP("a3.bmp", grab.data(), seg1.cx, seg1.cy, 1);
-		saveBMP("a4.bmp", gray.data(), d_rt.cx, d_rt.cy, 1);
-		
-		ch_vec bin(gray);
-		
-		// remove boundary
-		//ch_vec bin(d_rt.cx* d_rt.cy, 0);
-		//for (int y = 1; y < d_rt.cy - 1; ++y) {
-		//	for (int x = 1; x < d_rt.cx - 1; ++x) {
-		//		bin[y*d_rt.cx + x] = gray[y*d_rt.cx + x] < 128 ? 255 : 0;
-		//	}
-		//}
-		//for (int i = 0; i < bin.size(); ++i) {
-		//	bin[i] = gray[i] < 128 ? 255 : 0;
-		//}
-			   
-		
-		ch_vec sig(bin);
+			seg1.x = seg1.y = 0;
+			//	zs::thin(grab, seg1, seg1, false, false, true);
+			resize(grab, seg1, gray, d_rt);
+			zs::thin(gray, d_rt, d_rt, false, false, true);
 
-		
-	//	fl_vec cvt(sig.begin(), sig.end()), dwt(sig.begin(), sig.end());
-	//	//haar_dwt(cvt, d_rt.cx, d_rt.cy, dwt, 1);
-	//
-	//	//saveBMP("resize.bmp", bin.data(), d_rt.cx, d_rt.cy, 1);
-	//
-	//	//std::for_each(dwt.begin(), dwt.end(), [](float &fl) { fl = fl<255 ? 0 : 1; });
-	//	dt(dwt, d_rt.cx, d_rt.cy);
-	//	
-	//	auto r = min_dist_classify3(sigs_, dwt, sig2s_, d_rt);
-		
-		std::vector<std::pair<int, double>> r;
-		if (g_type == 1) {
-			// @todo lbp
-			vImg lbp;
-			make_lbp(sig, d_rt.cx, d_rt.cy, lbp);
-			//saveBMP("lbp.bmp", lbp.data(), 32, 32, 1);
-			vHist hist = lbp_hist(lbp, d_rt.cx, d_rt.cy);
-			r = min_dist_classify4(sigs_, hist);
+			saveBMP("a3.bmp", grab.data(), seg1.cx, seg1.cy, 1);
+			saveBMP("a4.bmp", gray.data(), d_rt.cx, d_rt.cy, 1);
+
+			ch_vec bin(gray);
+
+			// remove boundary
+			//ch_vec bin(d_rt.cx* d_rt.cy, 0);
+			//for (int y = 1; y < d_rt.cy - 1; ++y) {
+			//	for (int x = 1; x < d_rt.cx - 1; ++x) {
+			//		bin[y*d_rt.cx + x] = gray[y*d_rt.cx + x] < 128 ? 255 : 0;
+			//	}
+			//}
+			//for (int i = 0; i < bin.size(); ++i) {
+			//	bin[i] = gray[i] < 128 ? 255 : 0;
+			//}
+
+
+			ch_vec sig(bin);
+
+
+			//	fl_vec cvt(sig.begin(), sig.end()), dwt(sig.begin(), sig.end());
+			//	//haar_dwt(cvt, d_rt.cx, d_rt.cy, dwt, 1);
+			//
+			//	//saveBMP("resize.bmp", bin.data(), d_rt.cx, d_rt.cy, 1);
+			//
+			//	//std::for_each(dwt.begin(), dwt.end(), [](float &fl) { fl = fl<255 ? 0 : 1; });
+			//	dt(dwt, d_rt.cx, d_rt.cy);
+			//	
+			//	auto r = min_dist_classify3(sigs_, dwt, sig2s_, d_rt);
+
+			std::vector<std::pair<int, double>> r;
+			if (g_type == 1) {
+				// @todo lbp
+				vImg lbp;
+				make_lbp(sig, d_rt.cx, d_rt.cy, lbp);
+				//saveBMP("lbp.bmp", lbp.data(), 32, 32, 1);
+				vHist hist = lbp_hist(lbp, d_rt.cx, d_rt.cy);
+				r = min_dist_classify4(sigs_, hist);
+			}
+			else if (g_type == 2) {
+				vImg blur(sig.size(), 0);
+				//gaussian(sig, d_rt, blur);
+				descriptor_t d = make_orb(sig, d_rt.cx, d_rt.cy);
+
+				//vImg big(128 * 128, 0);
+				//imgRECT big_rt(0, 0, 128, 128);
+				//resize(sig, d_rt, big, big_rt);
+				//descriptor_t d = make_orb(big, big_rt.cx, big_rt.cy);
+
+				r = min_hd(ds_, d);
+				//int_vec di(d.begin(), d.end());
+				//r = min_dist_5(sigs_, di);
+			}
+			else if (g_type == 3) {
+				vImg big(128 * 128, 0);
+				imgRECT big_rt(0, 0, 128, 128);
+				resize(sig, d_rt, big, big_rt);
+
+				float k = 0.25; int fr = 3; int maximaSuppresstionDimention = 10;// 10;
+				image_t harris = make_harris(big, big_rt.cx, big_rt.cy, k, fr, true);
+				vPtd kps = maxima_suppresss(harris, nullptr, false, 1, fr, maximaSuppresstionDimention);
+				auto d = ptd_to_brief(big, big_rt.cx, big_rt.cy, kps, fr);
+				r = min_hd(ds_, d);
+				//int_vec di(d.begin(), d.end());
+				//r = min_dist_5(sigs_, di);
+			}
+			else if (g_type == 4) {
+				vImg blur(sig.size(), 0);
+				//gaussian(sig2, sig2_rt, blur);
+				vPtd kps = SIFT::make_sift(sig, d_rt.cx, d_rt.cy, 3);
+
+				auto d = ptd_to_brief(sig, d_rt.cx, d_rt.cy, kps, 3);
+				r = min_hd(ds_, d);
+			}
+			else {
+				// @todo hog
+				vHist hog;
+				make_hog(sig, d_rt.cx, d_rt.cy, hog, 8, 8);
+				r = min_dist_classify4(sigs_, hog);
+			}
+
+			// calc disp pos
+			int y = 10 + idx_segs * disp_gap;
+			++idx_segs;
+
+			CClientDC dc(&m_pic_result);
+			ResultOut(dc.m_hDC, r, 10, y);
 		}
-		else if (g_type == 2) {
-			vImg blur(sig.size(), 0);
-			//gaussian(sig, d_rt, blur);
-			descriptor_t d = make_orb(sig, d_rt.cx, d_rt.cy);
-
-			//vImg big(128 * 128, 0);
-			//imgRECT big_rt(0, 0, 128, 128);
-			//resize(sig, d_rt, big, big_rt);
-			//descriptor_t d = make_orb(big, big_rt.cx, big_rt.cy);
-
-			r = min_hd(ds_, d);
-			//int_vec di(d.begin(), d.end());
-			//r = min_dist_5(sigs_, di);
-		}
-		else if (g_type == 3) {
-			vImg big(128 * 128, 0);
-			imgRECT big_rt(0, 0, 128, 128);
-			resize(sig, d_rt, big, big_rt);
-
-			float k = 0.25; int fr = 3; int maximaSuppresstionDimention = 10;// 10;
-			image_t harris = make_harris(big, big_rt.cx, big_rt.cy, k, fr, true);
-			vPtd kps = maxima_suppresss(harris, nullptr, false, 1, fr, maximaSuppresstionDimention);
-			auto d = ptd_to_brief(big, big_rt.cx, big_rt.cy, kps, fr);
-			r = min_hd(ds_, d);
-			//int_vec di(d.begin(), d.end());
-			//r = min_dist_5(sigs_, di);
-		}
-		else if (g_type == 4) {
-			vImg blur(sig.size(), 0);
-			//gaussian(sig2, sig2_rt, blur);
-			vPtd kps = SIFT::make_sift(sig, d_rt.cx, d_rt.cy, 3);
-
-			auto d = ptd_to_brief(sig, d_rt.cx, d_rt.cy, kps, 3);
-			r = min_hd(ds_, d);
-		}
-		else {
-			// @todo hog
-			vHist hog;
-			make_hog(sig, d_rt.cx, d_rt.cy, hog, 8, 8);
-			r = min_dist_classify4(sigs_, hog);
-		}
-
-		
-
-		CClientDC dc(&m_pic_result);
-		ResultOut(dc.m_hDC, r);
 	}
 #endif
 	else

@@ -36,6 +36,7 @@ std::vector<imgRECT> seg_projection(const ch_vec &bin, int cx, int cy, int_vec &
         }
         if (s && e) {
             // calc horizontal projection
+            hp.clear();
             hp.resize(cx, 0);
             for (int y = vgap; y != v; ++y) {
                 for (int x = 0; x != cx; ++x) {
