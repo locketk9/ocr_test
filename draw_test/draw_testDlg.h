@@ -40,6 +40,11 @@ public:
 	int load_number();
 	void sample1_convnet(void);
 
+	std::vector<CRect> hps_;
+	std::vector<CRect> vps_;
+	int draw_HP(const int_vec &hp, const CRect& draw);
+	int draw_VP(const int_vec& vp, const CRect& draw);
+
 // 구현입니다.
 protected:
 	HICON m_hIcon;
@@ -64,4 +69,6 @@ public:
 	afx_msg void OnBnClickedBtLoad4();
 	afx_msg void OnBnClickedBtLoad5();
 	afx_msg void OnBnClickedBtLoad6();
+	CStatic m_picVP;
+	CStatic m_picHP;
 };

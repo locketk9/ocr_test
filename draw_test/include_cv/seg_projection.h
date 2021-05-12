@@ -4,19 +4,21 @@
 
 #pragma once
 
+#include <algorithm>
+
 #include "ocr.h"
 
 /// @brief segmenattion by projection
 /// 일단 1라인만 가능하다.
 std::vector<imgRECT> seg_projection(const ch_vec &bin, int cx, int cy, int_vec &hp, int_vec &vp) {
-    //hp.resize(cx, 0);
+    hp.resize(cx, 0);
     vp.resize(cy, 0);
     
     // calc vertical projection
     for (int y=0; y!=cy; ++y)   {
         for (int x=0; x!=cx; ++x)   {
             if (bin[cx*y + x] != 0) {
-                //++hp[x];
+                ++hp[x];
                 ++vp[y];
             } 
         }
@@ -24,6 +26,7 @@ std::vector<imgRECT> seg_projection(const ch_vec &bin, int cx, int cy, int_vec &
 
     // calc roi
     std::vector<imgRECT> segs;
+    int_vec subhp(cx, 0);
     // vertical
     int vgap = 0, hgap=0;
     bool s = false, e = false;
@@ -36,25 +39,23 @@ std::vector<imgRECT> seg_projection(const ch_vec &bin, int cx, int cy, int_vec &
         }
         if (s && e) {
             // calc horizontal projection
-            hp.clear();
-            hp.resize(cx, 0);
+            std::fill(std::begin(subhp), std::end(subhp), 0);
             for (int y = vgap; y != v; ++y) {
                 for (int x = 0; x != cx; ++x) {
                     if (bin[cx * y + x] != 0) {
-                        ++hp[x];
-                        //++vp[y];
+                        ++subhp[x];
                     }
                 }
             }            
             // horizontal
             hgap = 0;
             s = e = false;
-            for (int h = 0; h != hp.size(); ++h) {
-                if (hp[h] != 0 && s == false) {
+            for (int h = 0; h != subhp.size(); ++h) {
+                if (subhp[h] != 0 && s == false) {
                     s = true;
                     hgap = h;
                 }
-                else if (hp[h] == 0 && s == true) {
+                else if (subhp[h] == 0 && s == true) {
                     e = true;
                 }
                 if (s && e) {

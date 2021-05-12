@@ -197,6 +197,7 @@ void Cdraw_testDlg::sample1_convnet(void) {
 	//AfxMessageBox(_T("load OK!"));
 }
 
+
 //---------------------------
 
 
@@ -247,6 +248,8 @@ void Cdraw_testDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_PIC_DRAW, m_picDraw);
 	DDX_Control(pDX, IDC_PIC_RESULT, m_pic_result);
 	DDX_Control(pDX, IDC_PROG_LOAD, m_prog_load);
+	DDX_Control(pDX, IDC_PIC_VP, m_picVP);
+	DDX_Control(pDX, IDC_PIC__HP, m_picHP);
 }
 
 BEGIN_MESSAGE_MAP(Cdraw_testDlg, CDialogEx)
@@ -431,6 +434,30 @@ void Cdraw_testDlg::OnBnClickedBtClear()
 
 		m_pic_result.ReleaseDC(dc);
 	}
+	{
+		CDC* dc = m_picHP.GetDC();
+
+		CRect rt;
+		m_picHP.GetClientRect(rt);
+
+		CBrush* bs = (CBrush*)dc->SelectStockObject(WHITE_BRUSH);
+		dc->FillRect(rt, bs);
+		dc->Rectangle(rt);
+
+		m_picHP.ReleaseDC(dc);
+	}
+	{
+		CDC* dc = m_picVP.GetDC();
+
+		CRect rt;
+		m_picVP.GetClientRect(rt);
+
+		CBrush* bs = (CBrush*)dc->SelectStockObject(WHITE_BRUSH);
+		dc->FillRect(rt, bs);
+		dc->Rectangle(rt);
+
+		m_picVP.ReleaseDC(dc);
+	}
 
 }
 
@@ -468,6 +495,45 @@ vec_t& dst) {
 }
 ////////////////
 
+int Cdraw_testDlg::draw_HP(const int_vec& hp, const CRect& draw) {
+	CRect rt;
+	m_picHP.GetClientRect(rt);
+
+	int x = rt.left;
+	int y = rt.bottom;
+	float cx = rt.Width() / (float)draw.Width();
+	float cy = rt.Height() / (float)draw.Height();
+
+	CDC* pdc = m_picHP.GetDC();
+	for (int i = 0; i != hp.size(); ++i) {
+		CRect ort(i, rt.Height()-hp[i]*cy, i+1, y);
+		pdc->FillSolidRect(ort, RGB(0, 0, 255));
+		hps_.push_back(ort);
+	}
+	m_picHP.ReleaseDC(pdc);
+
+	return 0;
+}
+
+int Cdraw_testDlg::draw_VP(const int_vec& vp, const CRect& draw) {
+	CRect rt;
+	m_picVP.GetClientRect(rt);
+
+	int x = rt.left;
+	int y = rt.top;
+	float cx = rt.Width() / (float)draw.Width();
+	float cy = rt.Height() / (float)draw.Height();
+
+	CDC* pdc = m_picVP.GetDC();
+	for (int i = 0; i != vp.size(); ++i) {
+		CRect ort(x, i,  cx*vp[i], i+1);
+		pdc->FillSolidRect(ort, RGB(0, 0, 255));
+		vps_.push_back(ort);
+	}
+	m_picVP.ReleaseDC(pdc);
+
+	return 0;
+}
 
 
 // recognition
@@ -512,6 +578,9 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 		int_vec hp, vp;
 		rt_vec segs1 = seg_projection(bin2, s_rt.cx, s_rt.cy, hp, vp);
 
+		// draw projection histogram
+		draw_HP(hp, rt);
+		draw_VP(vp, rt);
 
 		//if (segs1.size() != 1)
 		//	return;
@@ -671,7 +740,10 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 		// segmenation of projection
 		int_vec hp, vp;
 		rt_vec segs1 = seg_projection(bin2, s_rt.cx, s_rt.cy, hp, vp);
-
+		
+		// draw projection histogram
+		draw_HP(hp, rt);
+		draw_VP(vp, rt);
 
 		if (segs1.size() != 1)
 			return;
