@@ -40,8 +40,8 @@ public:
 	int load_number();
 	void sample1_convnet(void);
 
-	std::vector<CRect> hps_;
-	std::vector<CRect> vps_;
+	//std::vector<CRect> hps_;
+	//std::vector<CRect> vps_;
 	int draw_HP(const int_vec &hp, const CRect& draw);
 	int draw_VP(const int_vec& vp, const CRect& draw);
 

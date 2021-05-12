@@ -508,7 +508,7 @@ int Cdraw_testDlg::draw_HP(const int_vec& hp, const CRect& draw) {
 	for (int i = 0; i != hp.size(); ++i) {
 		CRect ort(i, rt.Height()-hp[i]*cy, i+1, y);
 		pdc->FillSolidRect(ort, RGB(0, 0, 255));
-		hps_.push_back(ort);
+		//hps_.push_back(ort);
 	}
 	m_picHP.ReleaseDC(pdc);
 
@@ -528,7 +528,7 @@ int Cdraw_testDlg::draw_VP(const int_vec& vp, const CRect& draw) {
 	for (int i = 0; i != vp.size(); ++i) {
 		CRect ort(x, i,  cx*vp[i], i+1);
 		pdc->FillSolidRect(ort, RGB(0, 0, 255));
-		vps_.push_back(ort);
+		//vps_.push_back(ort);
 	}
 	m_picVP.ReleaseDC(pdc);
 
