@@ -147,6 +147,9 @@
     <ClInclude Include="include_cv\seg_projection.h">
       <Filter>inlcude_cv</Filter>
     </ClInclude>
+    <ClInclude Include="include_cv\skew.h">
+      <Filter>inlcude_cv</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="draw_test.cpp">

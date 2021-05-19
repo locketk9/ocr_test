@@ -222,6 +222,7 @@
     <ClInclude Include="include_cv\orb.h" />
     <ClInclude Include="include_cv\seg_projection.h" />
     <ClInclude Include="include_cv\sift.h" />
+    <ClInclude Include="include_cv\skew.h" />
     <ClInclude Include="include_cv\zhangsuen.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />

@@ -23,6 +23,7 @@
 #include "./include_cv/sift.h"
 
 #include "./include_cv/seg_projection.h"
+#include "./include_cv/skew.h"
 
 //---------------------
 #include "../tiny_cnn/tiny_cnn.h"
@@ -265,6 +266,7 @@ BEGIN_MESSAGE_MAP(Cdraw_testDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BT_LOAD4, &Cdraw_testDlg::OnBnClickedBtLoad4)
 	ON_BN_CLICKED(IDC_BT_LOAD5, &Cdraw_testDlg::OnBnClickedBtLoad5)
 	ON_BN_CLICKED(IDC_BT_LOAD6, &Cdraw_testDlg::OnBnClickedBtLoad6)
+	ON_BN_CLICKED(IDC_BT_SKEW, &Cdraw_testDlg::OnBnClickedBtSkew)
 END_MESSAGE_MAP()
 
 
@@ -1028,4 +1030,81 @@ void Cdraw_testDlg::OnBnClickedBtLoad6()
 	if (g_bnn) return;
 	g_type = 4;
 	load_number();
+}
+
+INT raw2hdc(HDC hDC, const ch_vec& raw, CRect& rt) {
+	CDC* dc = CDC::FromHandle(hDC);
+
+	CDC dcMem;
+	CBitmap bitmap;
+
+	int cx = rt.Width(), cy = rt.Height();
+
+	dcMem.CreateCompatibleDC(dc);
+	//bitmap.CreateCompatibleBitmap(&dcMem, cx, cy);
+	//CBitmap* pOldBitmap = dcMem.SelectObject(&bitmap);
+
+	// 8bit -> 32bit
+	int bp = 4;
+	std::vector<unsigned char> rv2(cx * cy * bp, 255);
+	for (int i = 0, j = 0; i != raw.size(); ++i, j += bp) {
+		rv2[j] = raw[i];
+		rv2[j + 1] = raw[i];
+		rv2[j + 2] = raw[i];
+		//rv2[j + 3] = 255;
+	}
+
+	bitmap.CreateBitmap(cx, cy, 1, 32, rv2.data());
+	//bitmap.SetBitmapBits(cx * cy * bp, rv2.data());
+	CBitmap* pOldBitmap = dcMem.SelectObject(&bitmap);
+
+	//CImage oimg;
+	//oimg.Attach(bitmap);
+	//oimg.Save(_T(".\\test.bmp"));
+
+	dc->BitBlt(0, 0, cx, cy, &dcMem, 0, 0, SRCCOPY);
+
+	dcMem.SelectObject(pOldBitmap);
+	dcMem.DeleteDC();
+
+	return 0;
+}
+
+void Cdraw_testDlg::OnBnClickedBtSkew()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	CDC* dc = m_picDraw.GetDC();
+	CRect rt;
+	m_picDraw.GetClientRect(rt);
+	//rt.right -= rt.Width() % 4;
+	//rt.bottom -= rt.Height() % 4;
+
+	auto bmp1 = get_bmp(dc->m_hDC, rt.Width(), rt.Height());
+
+	// copy roi
+	imgRECT bmp1_rt(0, 0, rt.Width(), rt.Height());
+	imgRECT bmp2_rt(4, 4, bmp1_rt.cx - 8, bmp1_rt.cy - 8);
+	ch_vec bmp2(bmp2_rt.cx * bmp2_rt.cy, 255), bmp3(bmp1.size(), 255);
+	seg_copy(bmp1, bmp1_rt, bmp2, bmp2_rt);
+	seg_paste(bmp3, bmp1_rt, bmp2, bmp2_rt);
+	//saveBMP("temp1.bmp", bmp3.data(), bmp1_rt.cx, bmp1_rt.cy, 1);
+
+	// detect skew
+	double skew = detect_skew2(bmp3, bmp1_rt.cx, bmp1_rt.cy);
+
+	// affine test
+	ch_vec dst(bmp1.size(), 255);
+	imgRECT bmp3_rt(0, 0, bmp1_rt.cx, bmp1_rt.cy);
+	double x_rot = -skew, y_rot = skew;
+	affine_skew(bmp3, bmp3_rt, dst, x_rot, y_rot);
+
+
+	// draw affine
+	raw2hdc(dc->m_hDC, dst, rt);
+	//saveBMP("temp.bmp", dst.data(), bmp3_rt.cx, bmp3_rt.cy, 1);
+	//CImage oimg; oimg.Load(_T("temp.bmp"));
+	//CRect rt2(2,2,rt.right-2, rt.bottom-2);
+	//oimg.Draw(dc->m_hDC, rt2);
+
+	m_picDraw.ReleaseDC(dc);
 }

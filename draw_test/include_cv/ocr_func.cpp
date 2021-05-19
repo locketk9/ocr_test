@@ -1740,7 +1740,7 @@ ch_vec& affine(const ch_vec &src, imgRECT &rect, ch_vec &dst
 					|| n+1 == y_size2 && m >= 0 && m < x_size2) {
 				dst[pos] = src[n*rect.cx+m];
 			} else {
-				dst[pos] = 0;
+				dst[pos] = 0; //
 			}			
 		}
 	}

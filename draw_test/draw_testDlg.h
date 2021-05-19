@@ -71,4 +71,5 @@ public:
 	afx_msg void OnBnClickedBtLoad6();
 	CStatic m_picVP;
 	CStatic m_picHP;
+	afx_msg void OnBnClickedBtSkew();
 };
