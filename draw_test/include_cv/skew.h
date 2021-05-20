@@ -234,13 +234,19 @@ double detect_skew2(const ch_vec& bin, int cx, int cy) {
     Point h3(t.x+1, 0), h4(t.y+1, cy);
     double theta2 = in_angle(t, b, h3, h4);
 
-    double skew = min(fabs(theta1), fabs(theta2));
+	double skew = 0.0;
 	// find angle direction
 	if (t.x < b.x) {
+		skew = min(fabs(theta1), fabs(theta2));
 		skew = -skew;
 	}
 	else if (l.y < r.y) {
+		skew = min(fabs(theta1), fabs(theta2));
 		skew = -skew;
+	}
+	else	{
+		skew = max(fabs(theta1), fabs(theta2));
+		skew = 180-skew;
 	}
 
     return skew;
