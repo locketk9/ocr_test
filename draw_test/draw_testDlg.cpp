@@ -116,10 +116,10 @@ std::vector<unsigned char> get_bmp(HDC hdc, int cx, int cy)	{
 int ResultOut(HDC hDC, std::vector<std::pair<int, double>> r, int x=10, int y=10) {
 	CDC *dc = CDC::FromHandle(hDC);
 	
-	CString csr; csr.Format(_T("%d%d%d%d%d"), r[0].first, r[1].first, r[2].first, r[3].first, r[4].first);
+	CString csr; csr.Format(_T("%d%d%d%d%d%d%d%d%d"), r[0].first, r[1].first, r[2].first, r[3].first, r[4].first, r[5].first, r[6].first, r[7].first, r[8].first);
 	//CClientDC dc(&m_pic_result);
 	CFont font, *oldFont;
-	font.CreateFontW(80, 0, 0, 0, FW_BOLD, 0, 0, 0, 0, 0, 0, 2, 0, L"SYSTEM_FIXED_FONT");
+	font.CreateFontW(70, 0, 0, 0, FW_BOLD, 0, 0, 0, 0, 0, 0, 2, 0, L"SYSTEM_FIXED_FONT");
 	oldFont = (CFont*)dc->SelectObject(font);
 	dc->TextOutW(x, y, csr);
 	//dc->SelectObject(oldFont);
@@ -609,8 +609,8 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 			ch_vec grab(seg1.cx * seg1.cy);
 			seg_copy(bin2, s_rt, grab, seg1);
 
-			saveBMP("a1.bmp", bin2.data(), s_rt.cx, s_rt.cy, 1);
-			saveBMP("a2.bmp", grab.data(), seg1.cx, seg1.cy, 1);
+			//saveBMP("a1.bmp", bin2.data(), s_rt.cx, s_rt.cy, 1);
+			//saveBMP("a2.bmp", grab.data(), seg1.cx, seg1.cy, 1);
 
 			ch_vec gray(d_rt.cx * d_rt.cy);
 
@@ -659,7 +659,7 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 				r = min_dist_classify4(sigs_, hist);
 			}
 			else if (g_type == 2) {
-				vImg blur(sig.size(), 0);
+				//vImg blur(sig.size(), 0);
 				//gaussian(sig, d_rt, blur);
 				descriptor_t d = make_orb(sig, d_rt.cx, d_rt.cy);
 
@@ -667,6 +667,15 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 				//imgRECT big_rt(0, 0, 128, 128);
 				//resize(sig, d_rt, big, big_rt);
 				//descriptor_t d = make_orb(big, big_rt.cx, big_rt.cy);
+
+				// erase all 0
+				d.erase(std::remove(d.begin(), d.end(), 0), d.end());
+
+				if (d.size() == 0) {
+					MessageBox(_T("Failed Feature Extraction"), _T("Error"), MB_OK);
+					m_picDraw.ReleaseDC(dc);
+					return;
+				}
 
 				r = min_hd(ds_, d);
 				//int_vec di(d.begin(), d.end());
@@ -681,16 +690,36 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 				image_t harris = make_harris(big, big_rt.cx, big_rt.cy, k, fr, true);
 				vPtd kps = maxima_suppresss(harris, nullptr, false, 1, fr, maximaSuppresstionDimention);
 				auto d = ptd_to_brief(big, big_rt.cx, big_rt.cy, kps, fr);
+				
+				// erase all 0
+				d.erase(std::remove(d.begin(), d.end(), 0), d.end());
+
+				if (d.size() == 0) {
+					MessageBox(_T("Failed Feature Extraction"), _T("Error"), MB_OK);
+					m_picDraw.ReleaseDC(dc);
+					return;
+				}
+
 				r = min_hd(ds_, d);
 				//int_vec di(d.begin(), d.end());
 				//r = min_dist_5(sigs_, di);
 			}
 			else if (g_type == 4) {
-				vImg blur(sig.size(), 0);
+				//vImg blur(sig.size(), 0);
 				//gaussian(sig2, sig2_rt, blur);
 				vPtd kps = SIFT::make_sift(sig, d_rt.cx, d_rt.cy, 3);
 
 				auto d = ptd_to_brief(sig, d_rt.cx, d_rt.cy, kps, 3);
+
+				if (d.size() == 0) {
+					MessageBox(_T("Failed Feature Extraction"), _T("Error"), MB_OK);
+					m_picDraw.ReleaseDC(dc);
+					return;
+				}
+
+				// erase all 0
+				d.erase(std::remove(d.begin(), d.end(), 0), d.end());
+
 				r = min_hd(ds_, d);
 			}
 			else {
@@ -761,8 +790,8 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 		resize(grab, seg1, resize_img, rt_img);
 		//zs::thin(resize_img, rt_img, rt_img, false, false, true);
 
-		saveBMP("a1.bmp", bmp1.data(), s_rt.cx, s_rt.cy, 1);
-		saveBMP("a2.bmp", grab.data(), seg1.cx, seg1.cy, 1);
+		//saveBMP("a1.bmp", bmp1.data(), s_rt.cx, s_rt.cy, 1);
+		//saveBMP("a2.bmp", grab.data(), seg1.cx, seg1.cy, 1);
 		saveBMP("a3.bmp", resize_img.data(), rt_img.cx, rt_img.cy, 1);
 
 	//	// remove boundary
@@ -793,7 +822,7 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 			dists[i++] = e;
 		}
 
-		std::vector<std::pair<int, double>> top_3(5);
+		std::vector<std::pair<int, double>> top_3(10);
 		std::partial_sort_copy(dists.begin(),
 			dists.end(),
 			top_3.begin(),
@@ -951,7 +980,10 @@ int Cdraw_testDlg::load_number() {
 			//imgRECT big_rt(0, 0, 128, 128);
 			//resize(sig2, sig2_rt, big, big_rt);
 			//descriptor_t d = make_orb(big, big_rt.cx, big_rt.cy);
-						
+			
+			// erase all 0
+			d.erase(std::remove(d.begin(), d.end(), 0), d.end());
+
 			ds_.push_back(d);
 			//int_vec di(d.begin(), d.end());
 			//sigs_.push_back(di);
@@ -965,6 +997,10 @@ int Cdraw_testDlg::load_number() {
 			image_t harris = make_harris(big, big_rt.cx, big_rt.cy, k, fr, true);
 			vPtd kps = maxima_suppresss(harris, nullptr, false, 1, fr, maximaSuppresstionDimention);
 			auto d = ptd_to_brief(big, big_rt.cx, big_rt.cy, kps, fr);
+
+			// erase all 0
+			d.erase(std::remove(d.begin(), d.end(), 0), d.end());
+			
 			ds_.push_back(d);
 			//int_vec di(d.begin(), d.end());
 			//sigs_.push_back(di);
@@ -975,6 +1011,10 @@ int Cdraw_testDlg::load_number() {
 			vPtd kps = SIFT::make_sift(sig2, sig2_rt.cx, sig2_rt.cy, 3);
 
 			auto d = ptd_to_brief(sig2, sig2_rt.cx, sig2_rt.cy, kps, 3);
+			
+			// erase all 0
+			d.erase(std::remove(d.begin(), d.end(), 0), d.end());
+
 			ds_.push_back(d);
 		}
 		else {

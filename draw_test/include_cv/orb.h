@@ -12,6 +12,7 @@
 #include <cmath>
 #include <numeric>
 #include <random>
+#include <limits>
 
 //#include "./ocr_def.h"
 //#include "./ocr_func.h"
@@ -767,15 +768,15 @@ descriptor_t& orb_descriptor(const img_t& imagePyramid, const std::vector<imgREC
 			int iy = std::round(y);
 			return	*(center + iy * step + ix);
 		};
-
-
-//#define GET_VALUE(idx) \
-//               (x = pattern[idx].x*a - pattern[idx].y*b, \
-//                y = pattern[idx].x*b + pattern[idx].y*a, \
-//                ix = cvRound(x), \
-//                iy = cvRound(y), \
-//                *(center + iy*step + ix) )
 #else
+
+#define GET_VALUE(idx) \
+               (x = pattern[idx].x*a - pattern[idx].y*b, \
+                y = pattern[idx].x*b + pattern[idx].y*a, \
+                ix = cvRound(x), \
+                iy = cvRound(y), \
+                *(center + iy*step + ix) )
+//#else
 //#define GET_VALUE(idx) \
 //            (x = pattern[idx].x*a - pattern[idx].y*b, \
 //            y = pattern[idx].x*b + pattern[idx].y*a, \
@@ -877,8 +878,9 @@ descriptor_t& orb_descriptor(const img_t& imagePyramid, const std::vector<imgREC
 
 /// @brief orb algorithm, not completed yet
 /// @return ?
+/// @param wta_k = 2=haming, 3||4=haming2
 descriptor_t make_orb(const vImg& src, size_t cx, size_t cy
-	, int wta_k = 2) {
+	, int wta_k = 4) {
 	if (src.size() != cx * cy) return descriptor_t{};
 
 	imgRECT src_rt(0, 0, cx, cy);
@@ -1195,7 +1197,8 @@ vPtd maxima_suppresss(const image_t &harris, vPtd* kps, bool haveKp
 			pd.y = r;
 
 			if (pd.v != 0) {
-				if (haveKp) points.push_back(pd);
+				//if (haveKp) 
+					points.push_back(pd);
 				if (r* maxima.cx + c < maxima.img.size())
 					maxima.img[r * maxima.cx + c] = 1;
 			}
@@ -1318,24 +1321,32 @@ double get_hd(const descriptor_t &d1, const descriptor_t &d2) {
 	int s = std::abs(d1l - d2l);
 
 	// brute-force hamming distance
-	std::vector<double> bf;
+	std::vector<double> bf;	bf.reserve(s+1);
 	descriptor_t const & dsrc = (d1l > d2l ? d1 : d2);
 	descriptor_t const & dtar = (d1l > d2l ? d2 : d1);
 	
 	int i = 0;
 	do {
-		double hd = 0;
-		for (size_t pos = 0; pos != dtar.size(); ++pos) {
+		double hd = 0.0;
+		for (size_t pos = 0; pos != dtar.size()-1; ++pos) {
 			int h1 = dsrc[i + pos], h2 = dtar[pos];
 			hd += hammingDistance(h1, h2);
 		}	
 		bf.push_back(hd);
 	} while (++i < s);
 
+#if 1
+	// return only min value
 	if (s == 0)
 		return bf[0];
 	auto min = std::min_element(std::begin(bf), std::end(bf));
 	return std::distance(std::begin(bf), min);
+#else
+	// return sum;
+	std::vector<double> sum(bf.size(), 0.0); 
+	std::partial_sum(std::begin(bf), std::end(bf), std::begin(sum));
+	return sum.back();
+#endif
 }
 
 std::vector<std::pair<int, double>>
@@ -1347,7 +1358,7 @@ min_hd(const std::vector<descriptor_t>& sigs, const descriptor_t& sig) {
 		dists[i] = get_hd(sigs[i], sig);
 	}
 
-	std::vector<std::pair<int, double>> top_3(5);
+	std::vector<std::pair<int, double>> top_3(10);
 	std::partial_sort_copy(dists.begin(),
 		dists.end(),
 		top_3.begin(),

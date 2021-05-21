@@ -3971,7 +3971,7 @@ min_dist_classify4(const sigi_vec& sigs, const int_vec& sig) {
 	   dists[i]	= vectorDistance(sig.begin(), sig.end(), sigs[i].begin());
 	}
 
-	std::vector<std::pair<int, double>> top_3(5);
+	std::vector<std::pair<int, double>> top_3(10);
 	std::partial_sort_copy(dists.begin(),
 		dists.end(),
 		top_3.begin(),
