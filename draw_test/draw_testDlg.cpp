@@ -9,6 +9,7 @@
 
 //#include "resource.h"
 
+#include <iterator>
 
 //#include "./include_cv/draw_pic.h"
 #include "./include_cv/ocr.h"
@@ -497,6 +498,7 @@ vec_t& dst) {
 }
 ////////////////
 
+
 int Cdraw_testDlg::draw_HP(const int_vec& hp, const CRect& draw) {
 	CRect rt;
 	m_picHP.GetClientRect(rt);
@@ -668,9 +670,6 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 				//resize(sig, d_rt, big, big_rt);
 				//descriptor_t d = make_orb(big, big_rt.cx, big_rt.cy);
 
-				// erase all 0
-				d.erase(std::remove(d.begin(), d.end(), 0), d.end());
-
 				if (d.size() == 0) {
 					MessageBox(_T("Failed Feature Extraction"), _T("Error"), MB_OK);
 					m_picDraw.ReleaseDC(dc);
@@ -689,10 +688,7 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 				float k = 0.25; int fr = 3; int maximaSuppresstionDimention = 10;// 10;
 				image_t harris = make_harris(big, big_rt.cx, big_rt.cy, k, fr, true);
 				vPtd kps = maxima_suppresss(harris, nullptr, false, 1, fr, maximaSuppresstionDimention);
-				auto d = ptd_to_brief(big, big_rt.cx, big_rt.cy, kps, fr);
-				
-				// erase all 0
-				d.erase(std::remove(d.begin(), d.end(), 0), d.end());
+				auto d = ptd_to_brief(big, big_rt.cx, big_rt.cy, kps, "brief_n.bmp");
 
 				if (d.size() == 0) {
 					MessageBox(_T("Failed Feature Extraction"), _T("Error"), MB_OK);
@@ -705,20 +701,21 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 				//r = min_dist_5(sigs_, di);
 			}
 			else if (g_type == 4) {
-				//vImg blur(sig.size(), 0);
-				//gaussian(sig2, sig2_rt, blur);
-				vPtd kps = SIFT::make_sift(sig, d_rt.cx, d_rt.cy, 3);
+				vImg big(128 * 128, 0);
+				imgRECT big_rt(0, 0, 128, 128);
+				resize(sig, d_rt, big, big_rt);
 
-				auto d = ptd_to_brief(sig, d_rt.cx, d_rt.cy, kps, 3);
+				vPtd kps = SIFT::make_sift(sig, d_rt.cx, d_rt.cy, 3);
+				//vPtd kps = SIFT::make_sift(big, big_rt.cx, big_rt.cy, 3);
+
+				auto d = ptd_to_brief(sig, d_rt.cx*4, d_rt.cy*4, kps, "brief_n.bmp");
+				//auto d = ptd_to_brief(big, big_rt.cx*8, big_rt.cy*8, kps, "brief_n.bmp");
 
 				if (d.size() == 0) {
 					MessageBox(_T("Failed Feature Extraction"), _T("Error"), MB_OK);
 					m_picDraw.ReleaseDC(dc);
 					return;
 				}
-
-				// erase all 0
-				d.erase(std::remove(d.begin(), d.end(), 0), d.end());
 
 				r = min_hd(ds_, d);
 			}
@@ -932,8 +929,12 @@ int Cdraw_testDlg::load_number() {
 //}
 
 	//saveBMP("a_bin.bmp", bin.data(), rect.cx, rect.cy, 1);
-
+	int num = 0;
 	for (const auto &seg : segs) {
+		CString csfn; csfn.Format(_T("brief_%d.bmp"), num++);
+		_bstr_t bsfn((LPCTSTR)csfn);
+		const char* fn = (char*)bsfn;
+		
 		//ch_vec sig;
 		//signature3(bin, rect, seg, sig);
 
@@ -981,12 +982,14 @@ int Cdraw_testDlg::load_number() {
 			//resize(sig2, sig2_rt, big, big_rt);
 			//descriptor_t d = make_orb(big, big_rt.cx, big_rt.cy);
 			
-			// erase all 0
-			d.erase(std::remove(d.begin(), d.end(), 0), d.end());
+			if (d.size() == 0) {
+				MessageBox(_T("Failed Feature Extraction"), _T("Error"), MB_OK);
+				return -1;
+			}
 
 			ds_.push_back(d);
 			//int_vec di(d.begin(), d.end());
-			//sigs_.push_back(di);
+			//Wsigs_.push_back(di);
 		}
 		else if (g_type == 3) {
 			vImg big(128 * 128, 0);
@@ -996,24 +999,32 @@ int Cdraw_testDlg::load_number() {
 			float k = 0.25; int fr = 3; int maximaSuppresstionDimention = 10;//10;
 			image_t harris = make_harris(big, big_rt.cx, big_rt.cy, k, fr, true);
 			vPtd kps = maxima_suppresss(harris, nullptr, false, 1, fr, maximaSuppresstionDimention);
-			auto d = ptd_to_brief(big, big_rt.cx, big_rt.cy, kps, fr);
+			auto d = ptd_to_brief(big, big_rt.cx, big_rt.cy, kps, fn);
 
-			// erase all 0
-			d.erase(std::remove(d.begin(), d.end(), 0), d.end());
-			
+			if (d.size() == 0) {
+				MessageBox(_T("Failed Feature Extraction"), _T("Error"), MB_OK);
+				return -1;
+			}
+
 			ds_.push_back(d);
 			//int_vec di(d.begin(), d.end());
 			//sigs_.push_back(di);
 		}
 		else if (g_type == 4) {
-			vImg blur(sig2.size(), 0);
-			//gaussian(sig2, sig2_rt, blur);
-			vPtd kps = SIFT::make_sift(sig2, sig2_rt.cx, sig2_rt.cy, 3);
+			vImg big(128 * 128, 0);
+			imgRECT big_rt(0, 0, 128, 128);
+			resize(sig2, sig2_rt, big, big_rt);
 
-			auto d = ptd_to_brief(sig2, sig2_rt.cx, sig2_rt.cy, kps, 3);
-			
-			// erase all 0
-			d.erase(std::remove(d.begin(), d.end(), 0), d.end());
+			vPtd kps = SIFT::make_sift(sig2, sig2_rt.cx, sig2_rt.cy, 3);
+			//vPtd kps = SIFT::make_sift(big, big_rt.cx, big_rt.cy, 3);
+
+			auto d = ptd_to_brief(sig2, sig2_rt.cx * 4, sig2_rt.cy * 4, kps, fn);
+			//auto d = ptd_to_brief(big, big_rt.cx * 8, big_rt.cy * 8, kps, fn);
+
+			if (d.size() == 0) {
+				MessageBox(_T("Failed Feature Extraction"), _T("Error"), MB_OK);
+				return -1;
+			}
 
 			ds_.push_back(d);
 		}

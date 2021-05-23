@@ -65,7 +65,7 @@ namespace SIFT {
         //std::vector<double> sig(nOctaveLayers + 3);
         pyr.resize(nOctaves * (nOctaveLayers + 3));
         for (auto& e : pyr) {
-            e.img.resize(1024);
+            e.img.resize(base.cx*base.cy);
             e.cx = base.cx;
             e.cy = base.cy;
         }

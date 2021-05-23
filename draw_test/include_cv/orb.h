@@ -75,18 +75,34 @@ namespace BRIEF {
 #define SIZE_BITS_HAMING 64
 
 	//std::vector<float> g_angles(25600);
-	vdb_t g_angles(25600);
+	vdb_t g_angles(256*16);
 
 	void create_synthetic_data(vdb_t& angles) {
 		auto const_pi = []() { return std::atan(1) * 4; };
 		double M_PI = const_pi();
 
-		std::mt19937 mt(std::time(0));
+		std::mt19937 mt(0x12345678);	// 0x34985739
 		std::uniform_real_distribution<float> u_dist(0, 1);
 		for (int i = 0; i < angles.size(); i++) {
 			angles[i] = u_dist(mt) * M_PI;
 		}
 	}
+
+	void ltrim(descriptor_t& d) {
+		while (d.size() != 0) {
+			if (d[0] == 255) d.erase(d.begin());
+			else break;
+		}
+	}
+
+	// trim from end (in place)
+	void rtrim(descriptor_t& d) {
+		while (d.size() != 0) {
+			if (d[d.size() - 1] == 255) d.erase(d.begin() + d.size() - 1);
+			else break;
+		}
+	}
+
 
 	// image.data, HEIGHT_IMAGE, WIDTH_IMAGE, N_CHANNELS, STRIDE_IMAGE,(BRIEF::Feature*) corners.data(), angles.data(), n_features
 	descriptor_t compute(const vImg& src // image_src
@@ -101,8 +117,8 @@ namespace BRIEF {
 
 		const int n_features = features.size();
 
-		const size_t ds = be_max ? max(64 * 4, n_features*4) : n_features * 4;
-		descriptor_t bd(ds, 0);
+		const size_t ds = be_max ? max(64 * 4, n_features * 4) : n_features * 4;
+		descriptor_t bd(ds, 255);
 		int ps = min(n_features, 16);
 		//descriptor_t bd(64 * 4, 0);
 		//int ps = 16;
@@ -118,10 +134,10 @@ namespace BRIEF {
 		alignas(32) char gaussian_bit_pattern_31_y_b[256] = { 5,-12,2,-13,12,6,-4,-8,-9,9,-9,12,6,0,-3,5,-1,12,-8,-8,1,-3,12,-2,-10,10,-3,7,11,-7,-1,-5,-13,12,4,7,-10,12,-13,2,3,-9,7,3,-10,0,1,12,-4,-12,-4,8,-7,-12,6,-10,5,12,8,7,8,-6,12,5,-13,5,-7,-11,-13,-1,2,12,6,-4,-3,12,5,4,2,1,5,-6,-7,-12,12,0,-13,9,-6,12,6,3,5,12,9,11,10,3,-6,-13,3,9,-6,-8,-4,-2,0,-8,3,-4,10,12,0,-6,-11,7,7,12,2,12,-8,-2,-13,0,-2,1,-4,-11,4,12,8,8,-13,12,7,-9,-8,9,-3,-12,0,12,-2,10,-4,-13,12,-6,3,-5,1,-11,-7,-5,6,6,1,-8,-8,9,3,7,-8,8,3,-9,-5,8,12,9,-5,11,-13,2,0,-10,-7,9,11,5,6,-2,7,-2,7,-13,-8,-9,5,10,-13,-13,-1,-9,-13,2,12,-10,-6,-6,-9,-7,-13,5,-13,-3,-12,-1,3,-9,1,-8,9,12,-5,7,-8,-12,5,9,5,4,3,12,11,-13,12,4,6,12,1,1,1,-13,-13,4,-2,-3,-2,10,-9,-1,-2,-8,5,10,5,5,11,-6,-12,9,4,-2,-2,-11 };
 
 
-		for (int j = 0; j != features.size(); ++j) {
+		for (int j = 0; j != n_features; ++j) {
 			//if ((features[j].x <= diag_length_pattern) || features[j].x >= (width_image - diag_length_pattern)
 			//	|| (features[j].y <= diag_length_pattern) || features[j].y >= (height_image - diag_length_pattern))
-			//	continue; // return bd;
+			//	return bd;
 			float cos_angle = std::cos(angles[j]);
 			float sin_angle = std::sin(angles[j]);
 			const auto image_center = src.begin() + static_cast<int>(features[j % features.size()].y) * stride_image + static_cast<int>(features[j%features.size()].x) * n_channels;
@@ -157,7 +173,7 @@ namespace BRIEF {
 				return (a < b) << j;
 			};
 
-			alignas(32) int32_t f[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+			alignas(32) int32_t f[8] = { 0, }; //{ 0, 0, 0, 0, 0, 0, 0, 0 };
 
 			f[0] |= GET_VALUE(0, 0);
 			f[0] |= GET_VALUE(0, 1);
@@ -427,24 +443,17 @@ namespace BRIEF {
 			//_mm_store_si128((__m128i*)(&bd(0, 0) + j * n_rows + 1 * 2), _mm_load_si128((const __m128i*)(f + 1 * 4)));
 			int posx = j * n_rows + 0 * 2;
 			int posy = j * n_rows + 1 * 2;
-			posx = posx > bd.size()- ps ? posx - ps : posx-(posx% ps);
-			posy = posy > bd.size()- ps ? posy - ps : posy-(posy% ps);
-			memcpy(&bd[0] + posx , (f + 0 * 4), ps);
-			memcpy(&bd[0] + posy, (f + 1 * 4), ps);
+			// ps -> 4
+			posx = posx > bd.size() - 4 ? bd.size() - 4 : posx;// -(posx % 4);
+			posy = posy > bd.size() - 4 ? bd.size() - 4 : posy;// -(posy % 4);
+			memcpy(&bd[0] + posx , (f + 0 * 4), 4);
+			memcpy(&bd[0] + posy, (f + 1 * 4), 4);
 
 		}
 
-		//bd.erase(
-		//	std::remove_if(
-		//		bd.begin(),
-		//		bd.end(),
-		//		[](auto const& d)
-		//{
-		//	return d=='\0';
-		//}
-		//),
-		//	bd.end() // HERE!!
-		//	);
+		ltrim(bd); rtrim(bd);
+		//bd.erase(std::remove(bd.begin(), bd.end(), 0), bd.end());
+
 		return bd;
 	}
 }
@@ -880,11 +889,20 @@ descriptor_t& orb_descriptor(const img_t& imagePyramid, const std::vector<imgREC
 /// @return ?
 /// @param wta_k = 2=haming, 3||4=haming2
 descriptor_t make_orb(const vImg& src, size_t cx, size_t cy
-	, int wta_k = 4) {
+	, int wta_k = 2) {
 	if (src.size() != cx * cy) return descriptor_t{};
 
 	imgRECT src_rt(0, 0, cx, cy);
+
 #if 1
+	imgRECT s_rt(src_rt);
+	vImg scale(src);
+	
+	std::vector<imgRECT> rects;
+	rects.push_back(src_rt);
+
+	int vScale = 1;
+#else
 	// scale 이미지를 크게 만든다. ㅡㅡㅋ
 	// make scale img 128*128/64*64/32*32
 	imgRECT s_rt(0, 0, 64 + 48 + 32, 64 + 48 + 32);
@@ -918,6 +936,8 @@ descriptor_t make_orb(const vImg& src, size_t cx, size_t cy
 	rects.push_back(img64_rt);
 	rects.push_back(img32_rt);
 
+	int vScale = 3;
+#endif
 	img_t img;
 	img.img = scale; img.cx = s_rt.cx; img.cy = s_rt.cy;
 	vPtd kps2 = fast2(img, rects);
@@ -927,13 +947,12 @@ descriptor_t make_orb(const vImg& src, size_t cx, size_t cy
 	image_t db_img(img.cx, img.cy, 0.0);
 	db_img.img = db_vec(img.img.begin(), img.img.end());
 	vPtd kps = maxima_suppresss(db_img, &kps2, true, 1, 3, 3);
-#endif
 
 	auto getScale = [](int level, int firstLevel, double scaleFactor) {
 		return (float)std::pow(scaleFactor, (double)(level - firstLevel));;
 	};
-	fl_vec layerScale(3);
-	for (int level = 0; level < 3; level++)
+	fl_vec layerScale(vScale);
+	for (int level = 0; level < vScale; level++)
 	{
 		float scale = getScale(level, 0, 1.25);
 		layerScale[level] = scale;
@@ -962,10 +981,12 @@ descriptor_t make_orb(const vImg& src, size_t cx, size_t cy
 		}
 	}
 
-	descriptor_t d(dsize*kps.size());
+	descriptor_t d(dsize*kps.size(), 255);
 
 	orb_descriptor(img, rects, layerScale, kps
 	 , d, pattern, dsize, wta_k);
+
+	BRIEF::ltrim(d); BRIEF::rtrim(d);
 
 	return d;
 }
@@ -1271,26 +1292,22 @@ vPtd maxima_suppresss(const image_t &harris, vPtd* kps, bool haveKp
 	//for (int i = 0; i != maxima.img.size();++i) {
 	//	tm[i] = maxima.img[i] != 0 ? 255 : 0;
 	//}
-	saveBMP("harris2.bmp", tm.data(), maxima.cx, maxima.cy, 1);
+	//saveBMP("harris2.bmp", tm.data(), maxima.cx, maxima.cy, 1);
 
 	return topPoints;
 }
 
 descriptor_t ptd_to_brief(const vImg& src, size_t cx, size_t cy
-						, const vPtd &kps, int fr) {
-
-	//int n_features = kps.size(); // 1 << 16;
-	//vPt corners(n_features);
-	//std::vector<float> angles(n_features);
-	//BRIEF::create_synthetic_data(corners, BRIEF::g_angles.data(), 2560, cx, cy);
+						, const vPtd &kps, const char* fn) {
 
 	descriptor_t d = BRIEF::compute(src, cy, cx, 1, 1, kps, BRIEF::g_angles);
 
-	vImg kimg(src.size()* 16, 0);
+	// draw keypoints
+	vImg kimg(cx * cy, 0);
 	for (auto const &pd : kps) {
 		kimg[pd.y * cx + pd.x] = 255;
 	}
-	saveBMP("harris.bmp", kimg.data(), cx, cy, 1);
+	saveBMP(fn, kimg.data(), cx, cy, 1);
 
 	return d;
 }
@@ -1335,7 +1352,7 @@ double get_hd(const descriptor_t &d1, const descriptor_t &d2) {
 		bf.push_back(hd);
 	} while (++i < s);
 
-#if 1
+#if 0
 	// return only min value
 	if (s == 0)
 		return bf[0];
@@ -1405,7 +1422,7 @@ min_dist_5(const sigi_vec& sigs, const int_vec& sig) {
 		dists[i] = get_ud(sig, sigs[i]);
 	}
 
-	std::vector<std::pair<int, double>> top_3(5);
+	std::vector<std::pair<int, double>> top_3(10);
 	std::partial_sort_copy(dists.begin(),
 		dists.end(),
 		top_3.begin(),
