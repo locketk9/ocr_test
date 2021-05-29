@@ -117,12 +117,20 @@ std::vector<unsigned char> get_bmp(HDC hdc, int cx, int cy)	{
 int ResultOut(HDC hDC, std::vector<std::pair<int, double>> r, int x=10, int y=10) {
 	CDC *dc = CDC::FromHandle(hDC);
 	
-	CString csr; csr.Format(_T("%d%d%d%d%d%d%d%d%d"), r[0].first, r[1].first, r[2].first, r[3].first, r[4].first, r[5].first, r[6].first, r[7].first, r[8].first);
+	CString csr; csr.Format(_T("%d%d%d%d%d%d%d%d%d%d"), r[0].first, r[1].first, r[2].first, r[3].first, r[4].first, r[5].first, r[6].first, r[7].first, r[8].first, r[9].first);
+	CString cscore; cscore.Format(_T("%d : %0.3f"), r[0].first, r[0].second);
+	CString cscore1; cscore1.Format(_T("%d : %0.3f"), r[1].first, r[1].second);
+	CString cscore2; cscore2.Format(_T("%d : %0.3f"), r[2].first, r[2].second);
 	//CClientDC dc(&m_pic_result);
-	CFont font, *oldFont;
-	font.CreateFontW(70, 0, 0, 0, FW_BOLD, 0, 0, 0, 0, 0, 0, 2, 0, L"SYSTEM_FIXED_FONT");
+	CFont font, *oldFont, font2, * oldFont2;
+	font.CreateFontW(65, 0, 0, 0, FW_BOLD, 0, 0, 0, 0, 0, 0, 2, 0, L"SYSTEM_FIXED_FONT");
 	oldFont = (CFont*)dc->SelectObject(font);
 	dc->TextOutW(x, y, csr);
+	font2.CreateFontW(35, 0, 0, 0, FW_BOLD, 0, 0, 0, 0, 0, 0, 2, 0, L"SYSTEM_FIXED_FONT");
+	oldFont2 = (CFont*)dc->SelectObject(font2);
+	dc->TextOutW(x, y + 55, cscore);
+	dc->TextOutW(x, y + 55 + 35, cscore1);
+	dc->TextOutW(x, y + 55 + 35 + 35, cscore2);
 	//dc->SelectObject(oldFont);
 	//font.DeleteObject();
 
@@ -590,7 +598,7 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 		//	return;
 		// support multi recognition
 		int idx_segs = 0;
-		int disp_gap = 65;
+		int disp_gap = 65+55+35;
 		for (auto seg1 : segs1) {
 
 			//imgRECT seg_rt(0, 0, segs[0].cx, segs[0].cy);
@@ -676,19 +684,24 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 					return;
 				}
 
-				r = min_hd(ds_, d);
-				//int_vec di(d.begin(), d.end());
-				//r = min_dist_5(sigs_, di);
+				r = min_hd(ds_, d, 2);
 			}
 			else if (g_type == 3) {
 				vImg big(128 * 128, 0);
 				imgRECT big_rt(0, 0, 128, 128);
 				resize(sig, d_rt, big, big_rt);
 
+#if 0
 				float k = 0.25; int fr = 3; int maximaSuppresstionDimention = 10;// 10;
 				image_t harris = make_harris(big, big_rt.cx, big_rt.cy, k, fr, true);
 				vPtd kps = maxima_suppresss(harris, nullptr, false, 1, fr, maximaSuppresstionDimention);
 				auto d = ptd_to_brief(big, big_rt.cx, big_rt.cy, kps, "brief_n.bmp");
+#else
+				float k = 0.125/*0.25*/; int fr = 1/*3*/; int maximaSuppresstionDimention = 4;// 10;
+				image_t harris = make_harris(sig, d_rt.cx, d_rt.cy, k, fr, true);
+				vPtd kps = maxima_suppresss(harris, nullptr, false, 1/*1*/, fr, maximaSuppresstionDimention);
+				auto d = ptd_to_brief(sig, d_rt.cx, d_rt.cy, kps, "brief_n.bmp");
+#endif
 
 				if (d.size() == 0) {
 					MessageBox(_T("Failed Feature Extraction"), _T("Error"), MB_OK);
@@ -696,16 +709,14 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 					return;
 				}
 
-				r = min_hd(ds_, d);
-				//int_vec di(d.begin(), d.end());
-				//r = min_dist_5(sigs_, di);
+				r = min_hd(ds_, d, 2);
 			}
 			else if (g_type == 4) {
 				vImg big(128 * 128, 0);
 				imgRECT big_rt(0, 0, 128, 128);
 				resize(sig, d_rt, big, big_rt);
 
-				vPtd kps = SIFT::make_sift(sig, d_rt.cx, d_rt.cy, 3);
+				vPtd kps = SIFT::make_sift(sig, d_rt.cx, d_rt.cy, 1/*3*/);
 				//vPtd kps = SIFT::make_sift(big, big_rt.cx, big_rt.cy, 3);
 
 				auto d = ptd_to_brief(sig, d_rt.cx*4, d_rt.cy*4, kps, "brief_n.bmp");
@@ -717,7 +728,7 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 					return;
 				}
 
-				r = min_hd(ds_, d);
+				r = min_hd(ds_, d, 2);
 			}
 			else {
 				// @todo hog
@@ -727,11 +738,11 @@ void Cdraw_testDlg::OnBnClickedBtRecog()
 			}
 
 			// calc disp pos
-			int y = 10 + idx_segs * disp_gap;
+			int y = 5 + idx_segs * disp_gap;
 			++idx_segs;
 
 			CClientDC dc(&m_pic_result);
-			ResultOut(dc.m_hDC, r, 10, y);
+			ResultOut(dc.m_hDC, r, 5, y);
 		}
 	}
 #endif
@@ -996,10 +1007,17 @@ int Cdraw_testDlg::load_number() {
 			imgRECT big_rt(0, 0, 128, 128);
 			resize(sig2, sig2_rt, big, big_rt);
 
+#if 0
 			float k = 0.25; int fr = 3; int maximaSuppresstionDimention = 10;//10;
 			image_t harris = make_harris(big, big_rt.cx, big_rt.cy, k, fr, true);
 			vPtd kps = maxima_suppresss(harris, nullptr, false, 1, fr, maximaSuppresstionDimention);
 			auto d = ptd_to_brief(big, big_rt.cx, big_rt.cy, kps, fn);
+#else
+			float k = 0.125/*0.25*/; int fr = 1/*3*/; int maximaSuppresstionDimention = 4;//10;
+			image_t harris = make_harris(sig2, sig2_rt.cx, sig2_rt.cy, k, fr, true);
+			vPtd kps = maxima_suppresss(harris, nullptr, false, 1/*1*/, fr, maximaSuppresstionDimention);
+			auto d = ptd_to_brief(sig2, sig2_rt.cx, sig2_rt.cy, kps, fn);
+#endif
 
 			if (d.size() == 0) {
 				MessageBox(_T("Failed Feature Extraction"), _T("Error"), MB_OK);
@@ -1015,10 +1033,10 @@ int Cdraw_testDlg::load_number() {
 			imgRECT big_rt(0, 0, 128, 128);
 			resize(sig2, sig2_rt, big, big_rt);
 
-			vPtd kps = SIFT::make_sift(sig2, sig2_rt.cx, sig2_rt.cy, 3);
+			vPtd kps = SIFT::make_sift(sig2, sig2_rt.cx, sig2_rt.cy, 1/*3*/);
 			//vPtd kps = SIFT::make_sift(big, big_rt.cx, big_rt.cy, 3);
 
-			auto d = ptd_to_brief(sig2, sig2_rt.cx * 4, sig2_rt.cy * 4, kps, fn);
+			auto d = ptd_to_brief(sig2, sig2_rt.cx, sig2_rt.cy, kps, fn);
 			//auto d = ptd_to_brief(big, big_rt.cx * 8, big_rt.cy * 8, kps, fn);
 
 			if (d.size() == 0) {

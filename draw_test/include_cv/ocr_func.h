@@ -244,8 +244,17 @@ min_dist_classify4(const sigi_vec& sigs, const int_vec& sig);
 
 
 
+//template<class Iter_T, class Iter2_T>
+//double vectorDistance(Iter_T first, Iter_T last, Iter2_T first2);
 template<class Iter_T, class Iter2_T>
-double vectorDistance(Iter_T first, Iter_T last, Iter2_T first2);
+double vectorDistance(Iter_T first, Iter_T last, Iter2_T first2) {
+	double ret = 0.0;
+	while (first != last) {
+		double dist = (*first++) - (*first2++);
+		ret += dist * dist;
+	}
+	return ret > 0.0 ? sqrt(ret) : 0.0;
+}
 
 /// @brief Hamming Distance
 int hammingDist(const sig_vec &sigs, const ch_vec &sig);

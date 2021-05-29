@@ -13,6 +13,8 @@
 #include <numeric>
 #include <random>
 #include <limits>
+#include <bitset>
+//#include <cmath>
 
 //#include "./ocr_def.h"
 //#include "./ocr_func.h"
@@ -87,22 +89,116 @@ namespace BRIEF {
 			angles[i] = u_dist(mt) * M_PI;
 		}
 	}
-
-	void ltrim(descriptor_t& d) {
+	template <class T>
+	void ltrim(T& d, byte b=0) {
 		while (d.size() != 0) {
-			if (d[0] == 255) d.erase(d.begin());
+			if (d[0] == b) d.erase(d.begin());
+			else break;
+		}
+	}
+	void ltrim(std::string& d, byte b = 0) {
+		while (d.size() != 0) {
+			if (d[0] == b) d.erase(d.begin());
 			else break;
 		}
 	}
 
 	// trim from end (in place)
-	void rtrim(descriptor_t& d) {
+	template <class T>
+	void rtrim(T& d, byte b = 0) {
 		while (d.size() != 0) {
-			if (d[d.size() - 1] == 255) d.erase(d.begin() + d.size() - 1);
+			if (d[d.size() - 1] == b) d.erase(d.begin() + d.size() - 1);
 			else break;
 		}
 	}
 
+
+
+	template<std::size_t N>
+	void bitset_reverse(std::bitset<N>& b) {
+		for (std::size_t i = 0; i < N / 2; ++i) {
+			bool t = b[i];
+			b[i] = b[N - i - 1];
+			b[N - i - 1] = t;
+		}
+	}
+
+	/// @brief gen_hamming
+	auto gen_hamming(const byte d) {
+
+		//d=input()
+		//data=list(d)
+		//data.reverse()
+		std::bitset<8> data(d);
+		bitset_reverse(data);
+
+		//c,ch,j,r,h=0,0,0,0,[]
+		int r = 0;
+		std::string h;
+
+		//while ((len(d)+r+1)>(pow(2,r))):
+		//    r=r+1
+		while ((data.size() + r + 1) > std::pow(2, r))
+			++r;
+
+		//for i in range(0,(r+len(data))):
+		//   p=(2**c)
+		//    if(p==(i+1)):
+		//        h.append(0)
+		//        c=c+1
+		//    else:
+		//        h.append(int(data[j]))
+		//        j=j+1
+		for (int i = 0, c = 0, j = 0; i < (r + data.size()); ++i) {
+			int p = std::pow(2, c);
+			if (p == (i + 1)) {
+				h += '0'; ++c;
+			}
+			else {
+				h += data[j++] + '0'; //++j;
+			}
+		}
+
+		//for parity in range(0,(len(h))):
+		//    ph=(2**ch)
+		//    if(ph==(parity+1)):
+		//        startIndex=ph-1
+		//        i=startIndex
+		//        toXor=[]
+		//
+		//        while(i<len(h)):
+		//            block=h[i:i+ph]
+		//            toXor.extend(block)
+		//            i+=2*ph
+		//
+		//        for z in range(1,len(toXor)):
+		//            h[startIndex]=h[startIndex]^toXor[z]
+		//        ch+=1
+		for (size_t parity = 0, ch = 0; parity != h.size(); ++parity) {
+			int ph = std::pow(2, ch);
+			if (ph == (parity + 1)) {
+				int startIndex = ph - 1;
+				int i = startIndex;
+				std::string toXor;
+
+				while (i < h.size()) {
+					std::string block = h.substr(i, ph);
+					toXor += block;
+					i += (2 * ph);
+				}
+
+				for (size_t z = 0; z != toXor.size(); ++z) {
+					h[startIndex] = ((h[startIndex] - '0') ^ (toXor[z] - '0')) + '0';
+				}
+				++ch;
+			}
+		}
+
+		//ltrim(h, '0');
+		std::bitset<8> bh(h.data());
+		bitset_reverse(bh);
+		return static_cast<byte>(bh.to_ulong());
+	}
 
 	// image.data, HEIGHT_IMAGE, WIDTH_IMAGE, N_CHANNELS, STRIDE_IMAGE,(BRIEF::Feature*) corners.data(), angles.data(), n_features
 	descriptor_t compute(const vImg& src // image_src
@@ -112,13 +208,13 @@ namespace BRIEF {
 		, const int stride_image
 		, const vPtd& features
 		, const vdb_t& angles
-		, const bool be_max=true
+		, const bool be_max=false
 		) {
 
 		const int n_features = features.size();
 
 		const size_t ds = be_max ? max(64 * 4, n_features * 4) : n_features * 4;
-		descriptor_t bd(ds, 255);
+		descriptor_t bd(ds, 0);
 		int ps = min(n_features, 16);
 		//descriptor_t bd(64 * 4, 0);
 		//int ps = 16;
@@ -133,11 +229,10 @@ namespace BRIEF {
 		alignas(32) char gaussian_bit_pattern_31_x_b[256] = { 9,7,-8,12,2,1,-2,-11,-12,11,-8,-9,12,-3,-12,-7,12,-2,-4,12,5,10,6,-6,-1,-8,-5,-3,-6,6,7,4,11,4,4,-2,-7,9,1,-8,-2,-4,10,1,11,-11,12,-6,12,-8,-8,7,10,1,5,3,-13,-12,-11,-4,12,-7,0,-7,8,-4,-1,5,-5,0,5,-4,-9,-8,12,12,-6,-3,12,-5,-12,-2,12,-11,12,3,-2,1,8,3,12,-1,-10,10,12,7,6,2,4,12,10,-7,-4,2,7,3,11,8,9,-6,-5,-3,-9,12,6,-8,6,-2,-5,10,-8,-5,9,-9,1,9,-1,12,-6,7,10,2,-5,2,1,7,6,-8,-3,-3,8,-6,-5,3,8,2,12,0,9,-3,-1,12,5,-9,8,7,-7,-7,-12,3,12,-6,9,2,-10,-7,-10,11,-1,0,-12,-10,-2,3,-4,-3,-2,-4,6,-5,12,12,0,-3,-6,-8,-6,-6,-4,-8,5,10,10,10,1,-6,1,-8,10,3,12,-5,-8,8,8,-3,10,5,-4,3,-6,4,-10,12,-6,3,11,8,-6,-3,-1,-3,-8,12,3,11,7,12,-3,4,2,-8,-11,-11,11,1,-9,-6,-8,8,3,-1,11,12,3,0,4,-10,12,9,8,-10,12,10,12,0 };
 		alignas(32) char gaussian_bit_pattern_31_y_b[256] = { 5,-12,2,-13,12,6,-4,-8,-9,9,-9,12,6,0,-3,5,-1,12,-8,-8,1,-3,12,-2,-10,10,-3,7,11,-7,-1,-5,-13,12,4,7,-10,12,-13,2,3,-9,7,3,-10,0,1,12,-4,-12,-4,8,-7,-12,6,-10,5,12,8,7,8,-6,12,5,-13,5,-7,-11,-13,-1,2,12,6,-4,-3,12,5,4,2,1,5,-6,-7,-12,12,0,-13,9,-6,12,6,3,5,12,9,11,10,3,-6,-13,3,9,-6,-8,-4,-2,0,-8,3,-4,10,12,0,-6,-11,7,7,12,2,12,-8,-2,-13,0,-2,1,-4,-11,4,12,8,8,-13,12,7,-9,-8,9,-3,-12,0,12,-2,10,-4,-13,12,-6,3,-5,1,-11,-7,-5,6,6,1,-8,-8,9,3,7,-8,8,3,-9,-5,8,12,9,-5,11,-13,2,0,-10,-7,9,11,5,6,-2,7,-2,7,-13,-8,-9,5,10,-13,-13,-1,-9,-13,2,12,-10,-6,-6,-9,-7,-13,5,-13,-3,-12,-1,3,-9,1,-8,9,12,-5,7,-8,-12,5,9,5,4,3,12,11,-13,12,4,6,12,1,1,1,-13,-13,4,-2,-3,-2,10,-9,-1,-2,-8,5,10,5,5,11,-6,-12,9,4,-2,-2,-11 };
 
-
 		for (int j = 0; j != n_features; ++j) {
 			//if ((features[j].x <= diag_length_pattern) || features[j].x >= (width_image - diag_length_pattern)
 			//	|| (features[j].y <= diag_length_pattern) || features[j].y >= (height_image - diag_length_pattern))
-			//	return bd;
+			//	 continue;
 			float cos_angle = std::cos(angles[j]);
 			float sin_angle = std::sin(angles[j]);
 			const auto image_center = src.begin() + static_cast<int>(features[j % features.size()].y) * stride_image + static_cast<int>(features[j%features.size()].x) * n_channels;
@@ -173,240 +268,86 @@ namespace BRIEF {
 				return (a < b) << j;
 			};
 
-			alignas(32) int32_t f[8] = { 0, }; //{ 0, 0, 0, 0, 0, 0, 0, 0 };
+			alignas(32) int32_t f[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
-			f[0] |= GET_VALUE(0, 0);
+			/*f[0] |= GET_VALUE(0, 0);
 			f[0] |= GET_VALUE(0, 1);
 			f[0] |= GET_VALUE(0, 2);
 			f[0] |= GET_VALUE(0, 3);
 			f[0] |= GET_VALUE(0, 4);
 			f[0] |= GET_VALUE(0, 5);
 			f[0] |= GET_VALUE(0, 6);
-			f[0] |= GET_VALUE(0, 7);
-			f[0] |= GET_VALUE(0, 8);
-			f[0] |= GET_VALUE(0, 9);
-			f[0] |= GET_VALUE(0, 10);
-			f[0] |= GET_VALUE(0, 11);
-			f[0] |= GET_VALUE(0, 12);
-			f[0] |= GET_VALUE(0, 13);
-			f[0] |= GET_VALUE(0, 14);
-			f[0] |= GET_VALUE(0, 15);
-			f[0] |= GET_VALUE(0, 16);
-			f[0] |= GET_VALUE(0, 17);
-			f[0] |= GET_VALUE(0, 18);
-			f[0] |= GET_VALUE(0, 19);
-			f[0] |= GET_VALUE(0, 20);
-			f[0] |= GET_VALUE(0, 21);
-			f[0] |= GET_VALUE(0, 22);
-			f[0] |= GET_VALUE(0, 23);
-			f[0] |= GET_VALUE(0, 24);
-			f[0] |= GET_VALUE(0, 25);
-			f[0] |= GET_VALUE(0, 26);
-			f[0] |= GET_VALUE(0, 27);
-			f[0] |= GET_VALUE(0, 28);
-			f[0] |= GET_VALUE(0, 29);
-			f[0] |= GET_VALUE(0, 30);
-			f[0] |= GET_VALUE(0, 31);
+			f[0] |= GET_VALUE(0, 7);*/
+			for (int i=0; i!=gv_w; ++i)
+				f[0] |= GET_VALUE(0, i);
 
-			f[1] |= GET_VALUE(1, 0);
+			/*f[1] |= GET_VALUE(1, 0);
 			f[1] |= GET_VALUE(1, 1);
 			f[1] |= GET_VALUE(1, 2);
 			f[1] |= GET_VALUE(1, 3);
 			f[1] |= GET_VALUE(1, 4);
 			f[1] |= GET_VALUE(1, 5);
 			f[1] |= GET_VALUE(1, 6);
-			f[1] |= GET_VALUE(1, 7);
-			f[1] |= GET_VALUE(1, 8);
-			f[1] |= GET_VALUE(1, 9);
-			f[1] |= GET_VALUE(1, 10);
-			f[1] |= GET_VALUE(1, 11);
-			f[1] |= GET_VALUE(1, 12);
-			f[1] |= GET_VALUE(1, 13);
-			f[1] |= GET_VALUE(1, 14);
-			f[1] |= GET_VALUE(1, 15);
-			f[1] |= GET_VALUE(1, 16);
-			f[1] |= GET_VALUE(1, 17);
-			f[1] |= GET_VALUE(1, 18);
-			f[1] |= GET_VALUE(1, 19);
-			f[1] |= GET_VALUE(1, 20);
-			f[1] |= GET_VALUE(1, 21);
-			f[1] |= GET_VALUE(1, 22);
-			f[1] |= GET_VALUE(1, 23);
-			f[1] |= GET_VALUE(1, 24);
-			f[1] |= GET_VALUE(1, 25);
-			f[1] |= GET_VALUE(1, 26);
-			f[1] |= GET_VALUE(1, 27);
-			f[1] |= GET_VALUE(1, 28);
-			f[1] |= GET_VALUE(1, 29);
-			f[1] |= GET_VALUE(1, 30);
-			f[1] |= GET_VALUE(1, 31);
+			f[1] |= GET_VALUE(1, 7);*/
+			for (int i = 0; i != gv_w; ++i)
+				f[1] |= GET_VALUE(1, i);
 
-			f[2] |= GET_VALUE(2, 0);
+			/*f[2] |= GET_VALUE(2, 0);
 			f[2] |= GET_VALUE(2, 1);
 			f[2] |= GET_VALUE(2, 2);
 			f[2] |= GET_VALUE(2, 3);
 			f[2] |= GET_VALUE(2, 4);
 			f[2] |= GET_VALUE(2, 5);
 			f[2] |= GET_VALUE(2, 6);
-			f[2] |= GET_VALUE(2, 7);
-			f[2] |= GET_VALUE(2, 8);
-			f[2] |= GET_VALUE(2, 9);
-			f[2] |= GET_VALUE(2, 10);
-			f[2] |= GET_VALUE(2, 11);
-			f[2] |= GET_VALUE(2, 12);
-			f[2] |= GET_VALUE(2, 13);
-			f[2] |= GET_VALUE(2, 14);
-			f[2] |= GET_VALUE(2, 15);
-			f[2] |= GET_VALUE(2, 16);
-			f[2] |= GET_VALUE(2, 17);
-			f[2] |= GET_VALUE(2, 18);
-			f[2] |= GET_VALUE(2, 19);
-			f[2] |= GET_VALUE(2, 20);
-			f[2] |= GET_VALUE(2, 21);
-			f[2] |= GET_VALUE(2, 22);
-			f[2] |= GET_VALUE(2, 23);
-			f[2] |= GET_VALUE(2, 24);
-			f[2] |= GET_VALUE(2, 25);
-			f[2] |= GET_VALUE(2, 26);
-			f[2] |= GET_VALUE(2, 27);
-			f[2] |= GET_VALUE(2, 28);
-			f[2] |= GET_VALUE(2, 29);
-			f[2] |= GET_VALUE(2, 30);
-			f[2] |= GET_VALUE(2, 31);
+			f[2] |= GET_VALUE(2, 7);*/
+			for (int i = 0; i != gv_w; ++i)
+				f[2] |= GET_VALUE(2, i);
 
-			f[3] |= GET_VALUE(3, 0);
+			/*f[3] |= GET_VALUE(3, 0);
 			f[3] |= GET_VALUE(3, 1);
 			f[3] |= GET_VALUE(3, 2);
 			f[3] |= GET_VALUE(3, 3);
 			f[3] |= GET_VALUE(3, 4);
 			f[3] |= GET_VALUE(3, 5);
 			f[3] |= GET_VALUE(3, 6);
-			f[3] |= GET_VALUE(3, 7);
-			f[3] |= GET_VALUE(3, 8);
-			f[3] |= GET_VALUE(3, 9);
-			f[3] |= GET_VALUE(3, 10);
-			f[3] |= GET_VALUE(3, 11);
-			f[3] |= GET_VALUE(3, 12);
-			f[3] |= GET_VALUE(3, 13);
-			f[3] |= GET_VALUE(3, 14);
-			f[3] |= GET_VALUE(3, 15);
-			f[3] |= GET_VALUE(3, 16);
-			f[3] |= GET_VALUE(3, 17);
-			f[3] |= GET_VALUE(3, 18);
-			f[3] |= GET_VALUE(3, 19);
-			f[3] |= GET_VALUE(3, 20);
-			f[3] |= GET_VALUE(3, 21);
-			f[3] |= GET_VALUE(3, 22);
-			f[3] |= GET_VALUE(3, 23);
-			f[3] |= GET_VALUE(3, 24);
-			f[3] |= GET_VALUE(3, 25);
-			f[3] |= GET_VALUE(3, 26);
-			f[3] |= GET_VALUE(3, 27);
-			f[3] |= GET_VALUE(3, 28);
-			f[3] |= GET_VALUE(3, 29);
-			f[3] |= GET_VALUE(3, 30);
-			f[3] |= GET_VALUE(3, 31);
+			f[3] |= GET_VALUE(3, 7);*/
+			for (int i = 0; i != gv_w; ++i)
+				f[3] |= GET_VALUE(3, i);
 
-			f[4] |= GET_VALUE(4, 0);
+			/*f[4] |= GET_VALUE(4, 0);
 			f[4] |= GET_VALUE(4, 1);
 			f[4] |= GET_VALUE(4, 2);
 			f[4] |= GET_VALUE(4, 3);
 			f[4] |= GET_VALUE(4, 4);
 			f[4] |= GET_VALUE(4, 5);
 			f[4] |= GET_VALUE(4, 6);
-			f[4] |= GET_VALUE(4, 7);
-			f[4] |= GET_VALUE(4, 8);
-			f[4] |= GET_VALUE(4, 9);
-			f[4] |= GET_VALUE(4, 10);
-			f[4] |= GET_VALUE(4, 11);
-			f[4] |= GET_VALUE(4, 12);
-			f[4] |= GET_VALUE(4, 13);
-			f[4] |= GET_VALUE(4, 14);
-			f[4] |= GET_VALUE(4, 15);
-			f[4] |= GET_VALUE(4, 16);
-			f[4] |= GET_VALUE(4, 17);
-			f[4] |= GET_VALUE(4, 18);
-			f[4] |= GET_VALUE(4, 19);
-			f[4] |= GET_VALUE(4, 20);
-			f[4] |= GET_VALUE(4, 21);
-			f[4] |= GET_VALUE(4, 22);
-			f[4] |= GET_VALUE(4, 23);
-			f[4] |= GET_VALUE(4, 24);
-			f[4] |= GET_VALUE(4, 25);
-			f[4] |= GET_VALUE(4, 26);
-			f[4] |= GET_VALUE(4, 27);
-			f[4] |= GET_VALUE(4, 28);
-			f[4] |= GET_VALUE(4, 29);
-			f[4] |= GET_VALUE(4, 30);
-			f[4] |= GET_VALUE(4, 31);
+			f[4] |= GET_VALUE(4, 7);*/
+			for (int i = 0; i != gv_w; ++i)
+				f[4] |= GET_VALUE(4, i);
 
-			f[5] |= GET_VALUE(5, 0);
+			/*f[5] |= GET_VALUE(5, 0);
 			f[5] |= GET_VALUE(5, 1);
 			f[5] |= GET_VALUE(5, 2);
 			f[5] |= GET_VALUE(5, 3);
 			f[5] |= GET_VALUE(5, 4);
 			f[5] |= GET_VALUE(5, 5);
 			f[5] |= GET_VALUE(5, 6);
-			f[5] |= GET_VALUE(5, 7);
-			f[5] |= GET_VALUE(5, 8);
-			f[5] |= GET_VALUE(5, 9);
-			f[5] |= GET_VALUE(5, 10);
-			f[5] |= GET_VALUE(5, 11);
-			f[5] |= GET_VALUE(5, 12);
-			f[5] |= GET_VALUE(5, 13);
-			f[5] |= GET_VALUE(5, 14);
-			f[5] |= GET_VALUE(5, 15);
-			f[5] |= GET_VALUE(5, 16);
-			f[5] |= GET_VALUE(5, 17);
-			f[5] |= GET_VALUE(5, 18);
-			f[5] |= GET_VALUE(5, 19);
-			f[5] |= GET_VALUE(5, 20);
-			f[5] |= GET_VALUE(5, 21);
-			f[5] |= GET_VALUE(5, 22);
-			f[5] |= GET_VALUE(5, 23);
-			f[5] |= GET_VALUE(5, 24);
-			f[5] |= GET_VALUE(5, 25);
-			f[5] |= GET_VALUE(5, 26);
-			f[5] |= GET_VALUE(5, 27);
-			f[5] |= GET_VALUE(5, 28);
-			f[5] |= GET_VALUE(5, 29);
-			f[5] |= GET_VALUE(5, 30);
-			f[5] |= GET_VALUE(5, 31);
+			f[5] |= GET_VALUE(5, 7);*/
+			for (int i = 0; i != gv_w; ++i)
+				f[5] |= GET_VALUE(5, i);
 
-			f[6] |= GET_VALUE(6, 0);
+			/*f[6] |= GET_VALUE(6, 0);
 			f[6] |= GET_VALUE(6, 1);
 			f[6] |= GET_VALUE(6, 2);
 			f[6] |= GET_VALUE(6, 3);
 			f[6] |= GET_VALUE(6, 4);
 			f[6] |= GET_VALUE(6, 5);
 			f[6] |= GET_VALUE(6, 6);
-			f[6] |= GET_VALUE(6, 7);
-			f[6] |= GET_VALUE(6, 8);
-			f[6] |= GET_VALUE(6, 9);
-			f[6] |= GET_VALUE(6, 10);
-			f[6] |= GET_VALUE(6, 11);
-			f[6] |= GET_VALUE(6, 12);
-			f[6] |= GET_VALUE(6, 13);
-			f[6] |= GET_VALUE(6, 14);
-			f[6] |= GET_VALUE(6, 15);
-			f[6] |= GET_VALUE(6, 16);
-			f[6] |= GET_VALUE(6, 17);
-			f[6] |= GET_VALUE(6, 18);
-			f[6] |= GET_VALUE(6, 19);
-			f[6] |= GET_VALUE(6, 20);
-			f[6] |= GET_VALUE(6, 21);
-			f[6] |= GET_VALUE(6, 22);
-			f[6] |= GET_VALUE(6, 23);
-			f[6] |= GET_VALUE(6, 24);
-			f[6] |= GET_VALUE(6, 25);
-			f[6] |= GET_VALUE(6, 26);
-			f[6] |= GET_VALUE(6, 27);
-			f[6] |= GET_VALUE(6, 28);
-			f[6] |= GET_VALUE(6, 29);
-			f[6] |= GET_VALUE(6, 30);
-			f[6] |= GET_VALUE(6, 31);
+			f[6] |= GET_VALUE(6, 7);*/
+			for (int i = 0; i != gv_w; ++i)
+				f[6] |= GET_VALUE(6, i);
 
-			f[7] |= GET_VALUE(7, 0);
+			/*f[7] |= GET_VALUE(7, 0);
 			f[7] |= GET_VALUE(7, 1);
 			f[7] |= GET_VALUE(7, 2);
 			f[7] |= GET_VALUE(7, 3);
@@ -414,48 +355,136 @@ namespace BRIEF {
 			f[7] |= GET_VALUE(7, 5);
 			f[7] |= GET_VALUE(7, 6);
 			f[7] |= GET_VALUE(7, 7);
-			f[7] |= GET_VALUE(7, 8);
-			f[7] |= GET_VALUE(7, 9);
-			f[7] |= GET_VALUE(7, 10);
-			f[7] |= GET_VALUE(7, 11);
-			f[7] |= GET_VALUE(7, 12);
-			f[7] |= GET_VALUE(7, 13);
-			f[7] |= GET_VALUE(7, 14);
-			f[7] |= GET_VALUE(7, 15);
-			f[7] |= GET_VALUE(7, 16);
-			f[7] |= GET_VALUE(7, 17);
-			f[7] |= GET_VALUE(7, 18);
-			f[7] |= GET_VALUE(7, 19);
-			f[7] |= GET_VALUE(7, 20);
-			f[7] |= GET_VALUE(7, 21);
-			f[7] |= GET_VALUE(7, 22);
-			f[7] |= GET_VALUE(7, 23);
-			f[7] |= GET_VALUE(7, 24);
-			f[7] |= GET_VALUE(7, 25);
-			f[7] |= GET_VALUE(7, 26);
-			f[7] |= GET_VALUE(7, 27);
-			f[7] |= GET_VALUE(7, 28);
-			f[7] |= GET_VALUE(7, 29);
-			f[7] |= GET_VALUE(7, 30);
-			f[7] |= GET_VALUE(7, 31);
+			f[7] |= GET_VALUE(7, 8);*/
+			for (int i = 0; i != gv_w; ++i)
+				f[7] |= GET_VALUE(7, i);
 
 			//_mm_store_si128((__m128i*)(&bd(0, 0) + j * n_rows + 0 * 2), _mm_load_si128((const __m128i*)(f + 0 * 4)));
 			//_mm_store_si128((__m128i*)(&bd(0, 0) + j * n_rows + 1 * 2), _mm_load_si128((const __m128i*)(f + 1 * 4)));
 			int posx = j * n_rows + 0 * 2;
 			int posy = j * n_rows + 1 * 2;
-			// ps -> 4
-			posx = posx > bd.size() - 4 ? bd.size() - 4 : posx;// -(posx % 4);
-			posy = posy > bd.size() - 4 ? bd.size() - 4 : posy;// -(posy % 4);
-			memcpy(&bd[0] + posx , (f + 0 * 4), 4);
-			memcpy(&bd[0] + posy, (f + 1 * 4), 4);
+			posx = posx > bd.size() - ps ? posx - ps : posx - (posx % ps);
+			posy = posy > bd.size() - ps ? posy - ps : posy - (posy % ps);
+			memcpy(&bd[0] + posx , (f + 0 * 4), ps);
+			memcpy(&bd[0] + posy, (f + 1 * 4), ps);
 
 		}
 
-		ltrim(bd); rtrim(bd);
+		//ltrim(bd); rtrim(bd);
 		//bd.erase(std::remove(bd.begin(), bd.end(), 0), bd.end());
 
 		return bd;
 	}
+
+	descriptor_t compute2(const vImg& src // image_src
+		, const int height_image
+		, const int width_image
+		, const int n_channels
+		, const int stride_image
+		, const vPtd& features
+		, const vdb_t& angles
+		, const bool be_max = false
+	) {
+
+		const int n_features = features.size();
+
+		const size_t ds = be_max ? max(64 * 4, n_features * 4) : n_features * 4;
+		descriptor_t bd(ds, 0);
+		int ps = min(n_features, 16);
+		//descriptor_t bd(64 * 4, 0);
+		//int ps = 16;
+
+		int n_rows = 4;
+
+		// <- maximal range of pattern box: 25/2 = 12, sqrt(12*12 + 12*12) = 17
+		int diag_length_pattern = 17;
+
+		alignas(32) char gaussian_bit_pattern_31_x_a[256] = { 8,4,-11,7,2,1,-2,-13,-13,10,-13,-11,7,-4,-13,-9,12,-3,-6,11,4,5,3,-8,-2,-13,-7,-4,-10,5,5,1,9,4,2,-4,-8,4,0,-13,-3,-6,8,0,7,-13,10,-6,10,-13,-13,3,5,-1,3,2,-13,-13,-13,-7,6,-9,-2,-12,3,-7,-3,2,-11,-1,5,-4,-9,-12,10,7,-7,-4,7,-7,-13,-3,7,-13,1,2,-4,-1,7,1,9,-1,-13,7,12,6,5,2,3,2,9,-8,-11,1,6,2,6,3,7,-11,-10,-5,-10,8,4,-10,4,-2,-5,7,-9,-5,8,-9,1,7,-2,11,-12,3,5,0,-9,0,-1,5,3,-13,-5,-4,6,-7,-13,1,4,-2,2,-2,4,-6,-3,7,4,-13,7,7,-7,-8,-13,2,10,-6,8,2,-11,-12,-11,5,-2,-1,-13,-10,-3,2,-9,-4,-4,-6,6,-13,11,7,-1,-4,-7,-13,-7,-8,-5,-13,1,1,9,5,-1,-9,-1,-13,8,2,7,-10,-10,4,3,-4,5,4,-9,0,-12,3,-10,8,-8,2,10,6,-7,-3,-1,-3,-8,4,2,6,3,11,-3,4,2,-10,-13,-13,6,0,-13,-9,-13,5,2,-1,9,11,3,-1,3,-13,5,8,7,-10,7,9,7,-1 };
+		alignas(32) char gaussian_bit_pattern_31_y_a[256] = { -3,2,9,-12,-13,-7,-10,-13,-3,4,-8,7,7,-5,2,0,-6,6,-13,-13,7,-3,-7,-7,11,12,3,2,-12,-12,-6,0,11,7,-1,-12,-5,11,-8,-2,-2,9,12,9,-5,-6,7,-3,-9,8,0,3,7,7,-10,-4,0,-7,3,12,-10,-1,-5,5,-10,-7,-2,9,-13,6,-3,-13,-6,-10,2,12,-13,9,-1,6,11,7,-8,-7,-3,-6,3,-13,1,-1,1,-9,-13,7,-5,3,-13,-12,8,6,-12,4,12,12,-9,3,3,-3,8,-5,11,-8,5,-1,-6,12,-2,0,-8,-6,-13,-13,-8,-11,-8,-4,1,-6,-9,7,5,-4,12,7,2,11,5,-4,9,-7,5,6,6,-10,1,-2,-12,-13,1,-10,-13,5,-2,9,1,-8,-4,11,6,4,-5,-5,-3,-12,-2,-13,0,-3,-13,-8,-11,-2,9,-3,-13,6,12,-11,-3,11,11,-5,12,-8,1,-12,-2,5,-1,7,5,0,12,-8,11,-3,-10,1,-11,-13,-13,-10,-8,-6,12,2,-13,-13,9,3,1,2,-10,-13,-12,2,6,8,10,-9,-13,-7,-2,2,-5,-9,-1,-1,0,-11,-4,-6,7,12,0,-1,3,8,-6,-9,7,-6,5,-3,0,4,-6,0,8,9,-4,4,3,-7,0,-6 };
+		alignas(32) char gaussian_bit_pattern_31_x_b[256] = { 9,7,-8,12,2,1,-2,-11,-12,11,-8,-9,12,-3,-12,-7,12,-2,-4,12,5,10,6,-6,-1,-8,-5,-3,-6,6,7,4,11,4,4,-2,-7,9,1,-8,-2,-4,10,1,11,-11,12,-6,12,-8,-8,7,10,1,5,3,-13,-12,-11,-4,12,-7,0,-7,8,-4,-1,5,-5,0,5,-4,-9,-8,12,12,-6,-3,12,-5,-12,-2,12,-11,12,3,-2,1,8,3,12,-1,-10,10,12,7,6,2,4,12,10,-7,-4,2,7,3,11,8,9,-6,-5,-3,-9,12,6,-8,6,-2,-5,10,-8,-5,9,-9,1,9,-1,12,-6,7,10,2,-5,2,1,7,6,-8,-3,-3,8,-6,-5,3,8,2,12,0,9,-3,-1,12,5,-9,8,7,-7,-7,-12,3,12,-6,9,2,-10,-7,-10,11,-1,0,-12,-10,-2,3,-4,-3,-2,-4,6,-5,12,12,0,-3,-6,-8,-6,-6,-4,-8,5,10,10,10,1,-6,1,-8,10,3,12,-5,-8,8,8,-3,10,5,-4,3,-6,4,-10,12,-6,3,11,8,-6,-3,-1,-3,-8,12,3,11,7,12,-3,4,2,-8,-11,-11,11,1,-9,-6,-8,8,3,-1,11,12,3,0,4,-10,12,9,8,-10,12,10,12,0 };
+		alignas(32) char gaussian_bit_pattern_31_y_b[256] = { 5,-12,2,-13,12,6,-4,-8,-9,9,-9,12,6,0,-3,5,-1,12,-8,-8,1,-3,12,-2,-10,10,-3,7,11,-7,-1,-5,-13,12,4,7,-10,12,-13,2,3,-9,7,3,-10,0,1,12,-4,-12,-4,8,-7,-12,6,-10,5,12,8,7,8,-6,12,5,-13,5,-7,-11,-13,-1,2,12,6,-4,-3,12,5,4,2,1,5,-6,-7,-12,12,0,-13,9,-6,12,6,3,5,12,9,11,10,3,-6,-13,3,9,-6,-8,-4,-2,0,-8,3,-4,10,12,0,-6,-11,7,7,12,2,12,-8,-2,-13,0,-2,1,-4,-11,4,12,8,8,-13,12,7,-9,-8,9,-3,-12,0,12,-2,10,-4,-13,12,-6,3,-5,1,-11,-7,-5,6,6,1,-8,-8,9,3,7,-8,8,3,-9,-5,8,12,9,-5,11,-13,2,0,-10,-7,9,11,5,6,-2,7,-2,7,-13,-8,-9,5,10,-13,-13,-1,-9,-13,2,12,-10,-6,-6,-9,-7,-13,5,-13,-3,-12,-1,3,-9,1,-8,9,12,-5,7,-8,-12,5,9,5,4,3,12,11,-13,12,4,6,12,1,1,1,-13,-13,4,-2,-3,-2,10,-9,-1,-2,-8,5,10,5,5,11,-6,-12,9,4,-2,-2,-11 };
+
+		size_t sz = n_features > ds ? ds : n_features;
+		for (int j = 0; j != sz; ++j) {
+			//if ((features[j].x <= diag_length_pattern) || features[j].x >= (width_image - diag_length_pattern)
+			//	|| (features[j].y <= diag_length_pattern) || features[j].y >= (height_image - diag_length_pattern))
+			//	 continue;
+			float cos_angle = std::cos(angles[j]);
+			float sin_angle = std::sin(angles[j]);
+			const auto image_center = src.begin() + static_cast<int>(features[j % features.size()].y) * stride_image + static_cast<int>(features[j % features.size()].x) * n_channels;
+			int ic_pos = static_cast<int>(features[j % features.size()].y) * stride_image + static_cast<int>(features[j % features.size()].x) * n_channels;
+			// N_DIM_BINARYDESCRIPTOR / SIZE_BITS_HAMING = 4
+			alignas(16) std::vector<int32_t> ia_x(ds, 0);
+			alignas(16) std::vector<int32_t> ia_y(ds, 0);
+			alignas(16) std::vector<int32_t> ib_x(ds, 0);
+			alignas(16) std::vector<int32_t> ib_y(ds, 0);
+
+			for (int i = 0; i != ds; ++i) {
+				ia_x[i] = std::round((gaussian_bit_pattern_31_x_a[i % 256] * cos_angle - gaussian_bit_pattern_31_y_a[i % 256] * sin_angle));
+				ia_y[i] = std::round((gaussian_bit_pattern_31_x_a[i % 256] * sin_angle + gaussian_bit_pattern_31_y_a[i % 256] * cos_angle));
+				ib_x[i] = std::round((gaussian_bit_pattern_31_x_b[i % 256] * cos_angle - gaussian_bit_pattern_31_y_b[i % 256] * sin_angle));
+				ib_y[i] = std::round((gaussian_bit_pattern_31_x_b[i % 256] * sin_angle + gaussian_bit_pattern_31_y_b[i % 256] * cos_angle));
+			}
+
+			int gv_w = ds / 8;
+			//#define GET_VALUE(i, j) (*(image_center + ia_y[i*gv_w + j]*stride_image + ia_x[i*gv_w + j]) < *(image_center + ib_y[i*gv_w + j]*stride_image + ib_x[i*gv_w + j])) << j
+			auto GET_VALUE = [&](int i, int j) {
+				int32_t ayv = ia_y[i * gv_w + j];
+				int32_t axv = ia_x[i * gv_w + j];
+				int av_pos = ic_pos + (ayv * stride_image + axv);
+				av_pos = av_pos < 0 ? 0 : (av_pos > src.size() - 1 ? src.size() - 1 : av_pos);
+				byte a = src[av_pos];
+				int32_t byv = ib_y[i * gv_w + j];
+				int32_t bxv = ib_x[i * gv_w + j];
+				int bv_pos = ic_pos + (byv * stride_image + bxv);
+				bv_pos = bv_pos < 0 ? 0 : (bv_pos > src.size() - 1 ? src.size() - 1 : bv_pos);
+				byte b = src[bv_pos];
+
+				//return (*(image_center + ia_y[i * gv_w + j] * stride_image + ia_x[i * gv_w + j]) < *(image_center + ib_y[i * gv_w + j] * stride_image + ib_x[i * gv_w + j])) << j;
+				return (a < b) << j;
+			};
+
+			alignas(32) int32_t f[8] = { 0, }; // 0, 0, 0, 0, 0, 0, 0};
+			//std::vector<int32_t> f(ps, 0);
+
+			for (int i = 0; i != gv_w; ++i)
+				f[0] |= GET_VALUE(0, i);
+
+			for (int i = 0; i != gv_w; ++i)
+				f[1] |= GET_VALUE(1, i);
+
+			for (int i = 0; i != gv_w; ++i)
+				f[2] |= GET_VALUE(2, i);
+
+			for (int i = 0; i != gv_w; ++i)
+				f[3] |= GET_VALUE(3, i);
+
+			for (int i = 0; i != gv_w; ++i)
+				f[4] |= GET_VALUE(4, i);
+
+			for (int i = 0; i != gv_w; ++i)
+				f[5] |= GET_VALUE(5, i);
+
+			for (int i = 0; i != gv_w; ++i)
+				f[6] |= GET_VALUE(6, i);
+
+			for (int i = 0; i != gv_w; ++i)
+				f[7] |= GET_VALUE(7, i);
+
+			//_mm_store_si128((__m128i*)(&bd(0, 0) + j * n_rows + 0 * 2), _mm_load_si128((const __m128i*)(f + 0 * 4)));
+			//_mm_store_si128((__m128i*)(&bd(0, 0) + j * n_rows + 1 * 2), _mm_load_si128((const __m128i*)(f + 1 * 4)));
+			int posx = j * n_rows + 0 * 2;
+			int posy = j * n_rows + 1 * 2;
+			posx = posx > bd.size() - ps ? bd.size() - ps : posx - (posx % ps);
+			posy = posy > bd.size() - ps ? bd.size() - ps : posy - (posy % ps);
+			memcpy(&bd[0] + posx, (&f[0] + 0 * 4), ps);
+			memcpy(&bd[0] + posy, (&f[0] + 1 * 4), ps);
+
+		}
+
+		return bd;
+	}
+
 }
 
 
@@ -925,7 +954,7 @@ descriptor_t make_orb(const vImg& src, size_t cx, size_t cy
 
 	//zs::thin(scale, s_rt, s_rt, false, false, true);
 
-	saveBMP("scale.bmp", scale.data(), s_rt.cx, s_rt.cy, 1);
+	saveBMP("orb.bmp", scale.data(), s_rt.cx, s_rt.cy, 1);
 
 //	return brief(scale, s_rt.cx, s_rt.cy);
 	//return brief(img128, img128_rt.cx, img128_rt.cy);
@@ -981,12 +1010,12 @@ descriptor_t make_orb(const vImg& src, size_t cx, size_t cy
 		}
 	}
 
-	descriptor_t d(dsize*kps.size(), 255);
+	descriptor_t d(dsize*kps.size(), 0);
 
 	orb_descriptor(img, rects, layerScale, kps
 	 , d, pattern, dsize, wta_k);
 
-	BRIEF::ltrim(d); BRIEF::rtrim(d);
+	//BRIEF::ltrim(d); BRIEF::rtrim(d);
 
 	return d;
 }
@@ -1226,6 +1255,12 @@ vPtd maxima_suppresss(const image_t &harris, vPtd* kps, bool haveKp
 		}
 	}
 	
+	vImg tm(maxima.img.size(), 0);
+	for (int i = 0; i != maxima.img.size(); ++i) {
+		tm[i] = maxima.img[i] != 0 ? 255 : 0;
+	}
+	saveBMP("harris2.bmp", tm.data(), maxima.cx, maxima.cy, 1);
+
 	// Sort points by corner Response
 	std::sort(points.begin(), points.end(), [](auto &a, auto &b) {
 		return a.v > b.v;
@@ -1284,30 +1319,28 @@ vPtd maxima_suppresss(const image_t &harris, vPtd* kps, bool haveKp
 		++i;
 	}
 
-	vImg tm(harris.img.size(), 0);
-	for (auto const& pd : topPoints) {
-		tm[pd.y * harris.cx + pd.x] = 255;
-	}
-	//vImg tm(maxima.img.size(), 0);
-	//for (int i = 0; i != maxima.img.size();++i) {
-	//	tm[i] = maxima.img[i] != 0 ? 255 : 0;
-	//}
-	//saveBMP("harris2.bmp", tm.data(), maxima.cx, maxima.cy, 1);
-
 	return topPoints;
 }
 
 descriptor_t ptd_to_brief(const vImg& src, size_t cx, size_t cy
 						, const vPtd &kps, const char* fn) {
 
-	descriptor_t d = BRIEF::compute(src, cy, cx, 1, 1, kps, BRIEF::g_angles);
+	descriptor_t d = BRIEF::compute2(src, cy, cx, 1, 1, kps, BRIEF::g_angles);
+
+	// gen_hamming
+	//descriptor_t d2;
+	//for (auto& e : d) {
+	//	d2.push_back( BRIEF::gen_hamming(e) );
+	//}
+	//d = d2;
 
 	// draw keypoints
-	vImg kimg(cx * cy, 0);
-	for (auto const &pd : kps) {
-		kimg[pd.y * cx + pd.x] = 255;
-	}
-	saveBMP(fn, kimg.data(), cx, cy, 1);
+	//vImg kimg(cx * cy, 0);
+	//for (auto const &pd : kps) {
+	//	kimg[pd.y * cx + pd.x] = 255;
+	//}
+	// draw brief
+	//saveBMP(fn, d.data(), 16, 16, 1);
 
 	return d;
 }
@@ -1341,11 +1374,11 @@ double get_hd(const descriptor_t &d1, const descriptor_t &d2) {
 	std::vector<double> bf;	bf.reserve(s+1);
 	descriptor_t const & dsrc = (d1l > d2l ? d1 : d2);
 	descriptor_t const & dtar = (d1l > d2l ? d2 : d1);
-	
+
 	int i = 0;
 	do {
 		double hd = 0.0;
-		for (size_t pos = 0; pos != dtar.size()-1; ++pos) {
+		for (size_t pos = 0; pos != dtar.size(); ++pos) {
 			int h1 = dsrc[i + pos], h2 = dtar[pos];
 			hd += hammingDistance(h1, h2);
 		}	
@@ -1353,6 +1386,7 @@ double get_hd(const descriptor_t &d1, const descriptor_t &d2) {
 	} while (++i < s);
 
 #if 0
+	//bf.erase(std::remove(bf.begin(), bf.end(), 0.0), bf.end());
 	// return only min value
 	if (s == 0)
 		return bf[0];
@@ -1366,60 +1400,136 @@ double get_hd(const descriptor_t &d1, const descriptor_t &d2) {
 #endif
 }
 
-std::vector<std::pair<int, double>>
-min_hd(const std::vector<descriptor_t>& sigs, const descriptor_t& sig) {
-
-	std::unordered_map<int, double> dists;
-
-	for (int i = 0; i != sigs.size(); ++i) {
-		dists[i] = get_hd(sigs[i], sig);
-	}
-
-	std::vector<std::pair<int, double>> top_3(10);
-	std::partial_sort_copy(dists.begin(),
-		dists.end(),
-		top_3.begin(),
-		top_3.end(),
-		[](std::pair<int, double> const& l,
-			std::pair<int, double> const& r)
-	{
-		return l.second < r.second;
-	});
-
-	return top_3;
-}
-
-double get_ud(const int_vec& d1, const int_vec& d2) {
+/// @brief hamming distans for padding
+double get_hd2(const descriptor_t& d1, const descriptor_t& d2) {
 	int d1l = d1.size(), d2l = d2.size();
 	int s = std::abs(d1l - d2l);
 
-	// brute-force euclidean distance
-	std::vector<double> bf;
-	int_vec const& dsrc = (d1l > d2l ? d1 : d2);
-	int_vec const& dtar = (d1l > d2l ? d2 : d1);
+	// brute-force hamming distance
+	std::vector<double> bf;	bf.reserve((d1l > d2l ? d1l : d2l) + 1);
+	descriptor_t const& dsrc = (d1l > d2l ? d1 : d2);
+	descriptor_t const& dwnd = (d1l < d2l ? d1 : d2);
 
 	int i = 0;
-	//double ud = 0;
 	do {
-		double ud = 0;
-	//	for (size_t pos = 0; pos != s; ++pos) {
-			ud += vectorDistance(dtar.begin(), dtar.end(), dsrc.begin()+i);
-			bf.push_back(ud);
-	//	}
+		descriptor_t dtar(dsrc.size(), 0);
+		for (int j = 9; j != dwnd.size(); ++j) {
+			dtar[i + j] = dwnd[j];
+		}
+
+		double hd = 0.0;
+		for (size_t pos = 0; pos != dtar.size(); ++pos) {
+			int h1 = dsrc[pos], h2 = dtar[pos];
+			hd += hammingDistance(h1, h2);
+		}
+		bf.push_back(hd);
 	} while (++i < s);
 
+#if 0
+	//bf.erase(std::remove(bf.begin(), bf.end(), 0.0), bf.end());
+	// return only min value
+	if (s == 0)
+		return bf[0];
+
+	auto min = std::min_element(std::begin(bf), std::end(bf));
+	return std::distance(std::begin(bf), min);
+#else
+	// return sum;
+	std::vector<double> sum(bf.size(), 0.0);
+	std::partial_sum(std::begin(bf), std::end(bf), std::begin(sum));
+	return sum.back();
+#endif
+}
+
+/// @brief get euclidean distance by brute force
+double get_ud(const descriptor_t& d1, const descriptor_t& d2) {
+	int d1l = d1.size(), d2l = d2.size();
+	int s = std::abs(d1l - d2l);
+
+	// brute-force hamming distance
+	std::vector<double> bf;	bf.reserve((d1l > d2l ? d1l : d2l) + 1);
+	descriptor_t const & dsrc = (d1l > d2l ? d1 : d2);
+	descriptor_t const & dwnd = (d1l > d2l ? d2 : d1);
+
+	int i = 0;
+	do {
+		descriptor_t dtar(dsrc.size(), 0);
+		for (int j = 9; j != dwnd.size(); ++j) {
+			dtar[i + j] = dwnd[j];
+		}
+
+		double hd = 0.0;
+		hd = vectorDistance(dsrc.begin(), dsrc.end(), dtar.begin());
+		bf.push_back(hd);
+	} while (++i < s);
+
+
+#if 0
+	//bf.erase(std::remove(bf.begin(), bf.end(), 0.0), bf.end());
+	// return only min value
+	if (s == 0)
+		return bf[0];
+
+	auto min = std::min_element(std::begin(bf), std::end(bf));
+	return std::distance(std::begin(bf), min);
+#else
+	if (bf.size() == 0)
+		return DBL_MAX;
+
+	// return sum;
+	std::vector<double> sum(bf.size(), 0.0);
+	std::partial_sum(std::begin(bf), std::end(bf), std::begin(sum));
+	return sum.back();
+#endif
+}
+
+double get_ud2(const descriptor_t& d1, const descriptor_t& d2) {
+	int d1l = d1.size(), d2l = d2.size();
+	int s = std::abs(d1l - d2l);
+
+	// brute-force hamming distance
+	std::vector<double> bf;	bf.reserve(s + 1);
+	descriptor_t const& dsrc = (d1l > d2l ? d1 : d2);
+	descriptor_t const& dtar = (d1l > d2l ? d2 : d1);
+
+	double ud = 0.0;
+	int i = 0;
+	do {
+		ud = vectorDistance(dtar.begin(), dtar.end(), dsrc.begin());
+		bf.push_back(ud);
+	} while (++i < s);
+
+#if 0
+	// return only min value
 	if (s == 0)
 		return bf[0];
 	auto min = std::min_element(std::begin(bf), std::end(bf));
 	return std::distance(std::begin(bf), min);
+#else
+	// return sum;
+	std::vector<double> sum(bf.size(), 0.0);
+	std::partial_sum(std::begin(bf), std::end(bf), std::begin(sum));
+	return sum.back();
+#endif
 }
 
+
 std::vector<std::pair<int, double>>
-min_dist_5(const sigi_vec& sigs, const int_vec& sig) {
+min_hd(const std::vector<descriptor_t>& sigs, const descriptor_t& sig, const int hamming=1) {
+
 	std::unordered_map<int, double> dists;
 
-	for (int i = 0; i != sigs.size(); ++i) {
-		dists[i] = get_ud(sig, sigs[i]);
+	if (hamming == 1) {
+		for (int i = 0; i != sigs.size(); ++i) {
+			double hd = get_hd(sigs[i], sig); 
+			dists[i] = hd;
+		}
+	}
+	else {
+		for (int i = 0; i != sigs.size(); ++i) {
+			double ud = get_ud2(sigs[i], sig);
+			dists[i] = ud;
+		}
 	}
 
 	std::vector<std::pair<int, double>> top_3(10);
@@ -1435,3 +1545,4 @@ min_dist_5(const sigi_vec& sigs, const int_vec& sig) {
 
 	return top_3;
 }
+
